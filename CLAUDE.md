@@ -17,9 +17,9 @@ Rhidoc is a spec-driven development tool. The primary product is the `.rhidoc/` 
 - **Strategy**: doc01.01 (mission), doc01.02 (vision), doc01.04 (glossary), doc01.05 (primary sources), doc01.06 (docs system), doc01.07 (products), doc01.08 (spec-code reconciliation), doc01.09 (research), doc01.10 (docs syntax reference — formal grammar for refs, sections, frontmatter, MANIFEST)
 - **Design**: doc03.01 (workspace scripts — the Docs API), doc03.02 (CLI user flow), doc03.03 (ADRs)
 - **Architecture**: doc02.01 (reconciliation architecture), doc02.02 (design patterns)
-- **Codex**: doc00.00 (index), doc00.01 (about), doc00.02 (maintenance), doc00.03 (conventions), doc00.04 (plain language), doc00.05 (controlled vocabulary)
+- **Handbook**: doc00.00 (index), doc00.01 (about), doc00.02 (maintenance), doc00.03 (conventions), doc00.04 (plain language), doc00.05 (controlled vocabulary), doc00.06 (drift)
 
-**The `00-codex/` section is GENERATED, not a source of truth.** Unlike most repos — where every `.rhidoc/` doc is hand-authored canon — this repo *ships* the codex as a template for other projects. The `00-codex/*.md` files are rehydrated from `rhidoc/templates/*.md` via `rhidoc init --rehydrate`. To change a codex doc, edit the **template source** in `rhidoc/templates/`, then rehydrate and `rhidoc regenerate`. Editing the workspace copy directly will be overwritten on the next rehydrate. Templates must stay self-contained — no references to rhidoc's own docs/research (`docXX.YY` refs), since they seed unrelated projects.
+**The `00-handbook/` section is GENERATED, not a source of truth.** Unlike most repos — where every `.rhidoc/` doc is hand-authored canon — this repo *ships* the handbook as a template for other projects. The `00-handbook/*.md` files are refreshed from `rhidoc/templates/*.md` via `rhidoc update`. To change a handbook doc, edit the **template source** in `rhidoc/templates/`, then run `rhidoc update` and `rhidoc regenerate`. Editing the workspace copy directly will be overwritten on the next update. Templates must stay self-contained — no references to rhidoc's own docs/research (`docXX.YY` refs), since they seed unrelated projects.
 
 **Rhidoc CLI**: Before using any `rhidoc` command, run `rhidoc ai-skill` for the compact command index (one-line synopsis per command, behavioral rules, workspace state). For the full block on a specific command — syntax, arguments, side effects, sequencing — run `rhidoc ai-skill <command>` (or `rhidoc <command> --help-ai`). Do not guess flags or arguments.
 
@@ -88,10 +88,10 @@ Rhidoc is a Python project with two main components:
 ## Build & Test
 
 ```bash
-just test    # Run all tests (pytest)
+just test    # pyrefly type check, then pytest
 ```
 
-`just test` must pass before committing. Rhidoc is pure Python — no build step needed.
+`just test` runs the pyrefly type check on `rhidoc/` before pytest, and must pass before committing. Rhidoc is pure Python — no build step needed.
 
 ## Codebase Exploration Strategy
 

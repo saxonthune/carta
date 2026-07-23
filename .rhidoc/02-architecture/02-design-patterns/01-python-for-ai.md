@@ -41,6 +41,8 @@ Read this doc when working on Python code in this project (currently `rhidoc/`).
 
 **Annotate return types explicitly.** Agents use return type annotations to chain function calls. An unannotated function forces the agent to read the body and trace all return paths.
 
+**`just test` runs a pyrefly type check on `rhidoc/` before pytest.** It is a deterministic, zero-token oracle: it checks every line, not just the paths pytest exercises. Values parse into types at the boundary — `DocRef`/`EntryName` instead of bare `str` refs — `Literal` covers fixed vocabularies (see `LintViolation.kind` in `rhidoc/mdlint.py`), and each command reads its arguments through a typed `<Verb>Args` dataclass rather than raw `argparse.Namespace` attributes.
+
 ## Functions
 
 **Keep functions under ~50 lines.** Agents reason about code linearly within a context window. A 200-line function forces the agent to hold the entire thing in working memory to understand any part of it. Three 40-line functions with clear names are cheaper to reason about.

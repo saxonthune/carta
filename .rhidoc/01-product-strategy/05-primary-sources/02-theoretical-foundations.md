@@ -113,7 +113,7 @@ DDD gets closer. Bounded contexts, aggregates, and ubiquitous language attempt t
 
 Artifact-driven design (doc01.05.01) asks: what does the product actually need? It analyzes the product first — the artifacts it produces, the processes that create them, the entities involved — and builds only the software required to implement it. Nothing more.
 
-An artifact authorizes an action, enables generation of another artifact, and produces side effects. The McDonalds kiosk doesn't need a `Customer` object with a `Hunger` property — it needs to collect an order, verify payment, and dispatch to the kitchen. The software implements the product pipeline, not a simulation of the restaurant.
+An artifact authorizes an action, enables generating another artifact, and produces side effects. The McDonalds kiosk doesn't need a `Customer` object with a `Hunger` property — it needs to collect an order, verify payment, and dispatch to the kitchen. The software implements the product pipeline, not a simulation of the restaurant.
 
 This requires a **thorough exposition of the product itself**: entities, business processes, artifacts, lifecycles. Without that exposition, you're guessing — and guessing is how indirection creeps in. You add a `UserManager` because you don't know what the product needs from users. You add an `AbstractRepositoryFactory` because you don't know what data access patterns the product requires.
 

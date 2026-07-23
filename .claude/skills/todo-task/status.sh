@@ -48,8 +48,8 @@ for rec in "${RECORDS[@]}"; do
         pending)  PENDING+=("${slug}") ;;
         draft)    DRAFTS+=("${slug}") ;;
       esac ;;
-    chain) IFS=$'\t' read -r _ name cstatus done_n total current phases worktree branch <<< "$rec"
-           CHAINS+=("${name}|${cstatus}|${done_n}|${total}|${current}|${phases}|${worktree}|${branch}") ;;
+    chain) IFS=$'\t' read -r _ name cstatus done_n total current phases worktree branch progress _cage <<< "$rec"
+           CHAINS+=("${name}|${cstatus}|${done_n}|${total}|${current}|${phases}|${worktree}|${branch}|${progress}") ;;
     epic)  IFS=$'\t' read -r _ name total done_n running_n failed_n members <<< "$rec"
            EPICS+=("${name}|${total}|${done_n}|${running_n}|${failed_n}|${members}") ;;
     stale) IFS=$'\t' read -r _ slug worktree <<< "$rec"
@@ -87,7 +87,9 @@ render_bucket() {
   echo "|-------|-------|---------|-------|"
   for row in "${rows[@]}"; do
     IFS='|' read -r slug overall commits notes <<< "$row"
-    echo "| **${slug}** | ${overall} | ${commits} | ${notes} |"
+    local disp="$overall"
+    [[ "$overall" == "$SM_OVERALL_NOOP" ]] && disp="no changes"
+    echo "| **${slug}** | ${disp} | ${commits} | ${notes} |"
   done
   echo ""
 }
@@ -110,7 +112,9 @@ if [[ ${#CRASHED[@]} -gt 0 ]]; then
   echo "|-------|-------|---------|----------|-------|"
   for row in "${CRASHED[@]}"; do
     IFS='|' read -r slug overall commits worktree notes <<< "$row"
-    echo "| **${slug}** | ${overall} | ${commits} | \`${worktree}\` | ${notes} |"
+    disp="$overall"
+    [[ "$overall" == "$SM_OVERALL_NOOP" ]] && disp="no changes"
+    echo "| **${slug}** | ${disp} | ${commits} | \`${worktree}\` | ${notes} |"
   done
   echo ""
 fi
@@ -130,16 +134,17 @@ if [[ ${#CHAINS[@]} -gt 0 ]]; then
   echo ""
   echo "| Chain | Status | Progress | Current/Failed | Upcoming |"
   echo "|-------|--------|----------|----------------|----------|"
+  _chain_notes=()
   for row in "${CHAINS[@]}"; do
-    IFS='|' read -r name cstatus done_n total current phases worktree branch <<< "$row"
-    # Active-phase progress phrasing
-    case "$cstatus" in
-      running|failed) _progress="phase $((done_n+1))/${total}" ;;
-      complete)       _progress="${total}/${total}" ;;
-      waiting)        _progress="0/${total}" ;;
-      *)              _progress="${done_n}/${total}" ;;
-    esac
-    # Upcoming phases only (queued, not done or current)
+    IFS='|' read -r name cstatus done_n total current phases worktree branch progress <<< "$row"
+    _progress="$progress"
+    # Defensive clamp: a chain marked failed/running after every phase already
+    # classified success (e.g. a crash in the chain's own final trunk merge)
+    # must never render as an impossible "phase N/total" with N > total.
+    if (( done_n >= total )); then
+      _progress="${total}/${total}"
+    fi
+    # Upcoming phases only (queued, not done or current) — running/waiting states only
     IFS=',' read -ra _up_arr <<< "$phases"
     _upcoming_parts=()
     case "$cstatus" in
@@ -147,7 +152,7 @@ if [[ ${#CHAINS[@]} -gt 0 ]]; then
         for _up_ph in "${_up_arr[@]}"; do
           [[ -n "$_up_ph" ]] && _upcoming_parts+=("$_up_ph")
         done ;;
-      running|failed)
+      running)
         _up_i=0
         for _up_ph in "${_up_arr[@]}"; do
           if [[ -n "$_up_ph" ]] && (( _up_i > done_n )); then
@@ -155,14 +160,27 @@ if [[ ${#CHAINS[@]} -gt 0 ]]; then
           fi
           _up_i=$(( _up_i + 1 ))
         done ;;
-      complete) ;;
     esac
     _upcoming="${_upcoming_parts[*]+"${_upcoming_parts[*]}"}"
     [[ -z "$_upcoming" ]] && _upcoming="—"
     echo "| **${name}** | ${cstatus} | ${_progress} | ${current} | ${_upcoming} |"
-    [[ "$cstatus" == "failed" ]] && HAS_ATTENTION=true
+    [[ "$(chain_state_bucket "$cstatus")" == "$SM_BUCKET_ATTENTION" ]] && HAS_ATTENTION=true
+    case "$cstatus" in
+      awaiting-merge)
+        _chain_notes+=("**${name}** — ready to merge: \`git merge --squash ${branch} && git commit -m 'feat: chain-${name} (agent)'\`") ;;
+      conflict)
+        _chain_notes+=("**${name}** — merge conflict: see \`.todo-tasks/results/${name}.conflict.md\`") ;;
+      finalizable)
+        _chain_notes+=("**${name}** — merged out-of-band — run finalize-chain to clear") ;;
+    esac
   done
   echo ""
+  if [[ ${#_chain_notes[@]} -gt 0 ]]; then
+    for _cn in "${_chain_notes[@]}"; do
+      echo "$_cn"
+    done
+    echo ""
+  fi
 fi
 
 if [[ ${#EPICS[@]} -gt 0 ]]; then

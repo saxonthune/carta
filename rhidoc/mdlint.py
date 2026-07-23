@@ -7,16 +7,18 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from .mdtree import MdNode
+
+LintViolationKind = Literal["word-cap", "line-cap", "banned-pattern", "duplicate-body"]
 
 # Per-node body_text caps.  Tune by changing these constants.
 WORD_CAP: int = 200
 LINE_CAP: int = 40
 
-# doc00.02 banned-pattern catalog.
+# doc00.06 banned-pattern catalog.
 # Each entry is (name, compiled_pattern), case-insensitive, matched against body_text.
 BANNED_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     # Future modals — docs must describe current intent, not future plans
@@ -64,12 +66,25 @@ BANNED_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             re.IGNORECASE,
         ),
     ),
+    # Open-questions sections — open questions go to the user or the task tracker
+    (
+        "open-question",
+        re.compile(r"\bopen questions?\b", re.IGNORECASE),
+    ),
+    # Rename narration — the old name lives in git, not in the doc
+    (
+        "rename-narration",
+        re.compile(
+            r"\b(renamed from|formerly|previously (called|named|known as))\b",
+            re.IGNORECASE,
+        ),
+    ),
 ]
 
 
 @dataclass
 class LintViolation:
-    kind: str      # "word-cap" | "line-cap" | "banned-pattern" | "duplicate-body"
+    kind: LintViolationKind
     address: str   # node address
     detail: str    # human-readable description
 

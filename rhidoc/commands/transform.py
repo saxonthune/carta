@@ -4,6 +4,7 @@ import re
 import shutil
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..errors import RhidocError
@@ -24,9 +25,20 @@ from .._glyphs import for_stream
 # punch
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class PunchArgs:
+    target: str
+    dry_run: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(target=ns.target, dry_run=ns.dry_run)
+
+
 def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Expand leaf file into directory with content as first child."""
-    source_path = resolve_and_validate(args.target, rhidoc_root).path
+    a = PunchArgs.from_namespace(args)
+    source_path = resolve_and_validate(a.target, rhidoc_root).path
 
     if source_path.is_dir():
         raise RhidocError(f"Error: source is already a directory: {source_path}")
@@ -52,15 +64,17 @@ def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
     # Compute ref-shift before moving files: docXX.YY → docXX.YY.01
     rename_map = compute_rename_map([(source_path, child_path)], rhidoc_root)
 
-    if args.dry_run:
+    if a.dry_run:
         print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/01-{slug}.md (content)")
         print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md (generated index)")
         for att in attachments:
-            att_slug = EntryName.parse(att.name).tail
+            att_parsed = EntryName.parse(att.name)
+            assert att_parsed is not None
+            att_slug = att_parsed.tail
             print(f"Would move attachment: {att.name} {glyphs.arrow} {dir_name}/01-{att_slug}")
         if rename_map:
             print(f"Would shift refs:")
-            for old_ref, new_ref in sorted(rename_map.items()):
+            for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
                 print(f"  {old_ref} -> {new_ref}")
         print("\n(dry-run: no files modified)")
         return
@@ -75,8 +89,9 @@ def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
     }, f"\n# {title}\n")
 
     for att in attachments:
-        att_slug = EntryName.parse(att.name).tail
-        shutil.move(str(att), str(new_dir / f"01-{att_slug}"))
+        att_parsed = EntryName.parse(att.name)
+        assert att_parsed is not None
+        shutil.move(str(att), str(new_dir / f"01-{att_parsed.tail}"))
 
     rewrite_results = rewrite_refs(collect_rewritable_files(rhidoc_root), rename_map)
     do_regenerate(rhidoc_root, _load_preamble(rhidoc_root.name))
@@ -87,7 +102,7 @@ def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
         print(f"  Moved {len(attachments)} attachment(s) with prefix 01-")
     if rename_map:
         print(f"Refs shifted: {sum(rewrite_results.values())} replacement(s)")
-        for old_ref, new_ref in sorted(rename_map.items()):
+        for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old_ref} -> {new_ref}")
 
 
@@ -110,18 +125,26 @@ def _hoist_bundle_moves(
     moves: list[tuple[Path, Path]] = []
     if bndl.is_directory_bundle:
         dir_path = bndl.attachments[0]
-        new_path = dest_dir / f"{new_prefix:02d}-{EntryName.parse(dir_path.name).tail}"
+        dir_parsed = EntryName.parse(dir_path.name)
+        assert dir_parsed is not None
+        new_path = dest_dir / f"{new_prefix:02d}-{dir_parsed.tail}"
         if dir_path.resolve() != new_path.resolve():
             moves.append((dir_path, new_path))
     else:
         if bndl.root is not None:
-            slug = override_root_slug if override_root_slug is not None else EntryName.parse(bndl.root.name).tail
+            if override_root_slug is not None:
+                slug = override_root_slug
+            else:
+                root_parsed = EntryName.parse(bndl.root.name)
+                assert root_parsed is not None
+                slug = root_parsed.tail
             new_path = dest_dir / f"{new_prefix:02d}-{slug}"
             if bndl.root.resolve() != new_path.resolve():
                 moves.append((bndl.root, new_path))
         for att in bndl.attachments:
-            att_slug = EntryName.parse(att.name).tail
-            new_att = dest_dir / f"{new_prefix:02d}-{att_slug}"
+            att_parsed = EntryName.parse(att.name)
+            assert att_parsed is not None
+            new_att = dest_dir / f"{new_prefix:02d}-{att_parsed.tail}"
             if att.resolve() != new_att.resolve():
                 moves.append((att, new_att))
     return moves
@@ -138,20 +161,28 @@ def _hoist_stage_bundle(
     """Move all bundle members into staging_path, recording (stage, final) pairs."""
     if bndl.is_directory_bundle:
         dir_path = bndl.attachments[0]
-        final_name = f"{new_prefix:02d}-{EntryName.parse(dir_path.name).tail}"
+        dir_parsed = EntryName.parse(dir_path.name)
+        assert dir_parsed is not None
+        final_name = f"{new_prefix:02d}-{dir_parsed.tail}"
         stage_path = staging_path / final_name
         shutil.move(str(dir_path), str(stage_path))
         staged.append((stage_path, dest_dir / final_name))
     else:
         if bndl.root is not None:
-            slug = override_root_slug if override_root_slug is not None else EntryName.parse(bndl.root.name).tail
+            if override_root_slug is not None:
+                slug = override_root_slug
+            else:
+                root_parsed = EntryName.parse(bndl.root.name)
+                assert root_parsed is not None
+                slug = root_parsed.tail
             final_name = f"{new_prefix:02d}-{slug}"
             stage_path = staging_path / final_name
             shutil.move(str(bndl.root), str(stage_path))
             staged.append((stage_path, dest_dir / final_name))
         for att in bndl.attachments:
-            att_slug = EntryName.parse(att.name).tail
-            final_name = f"{new_prefix:02d}-{att_slug}"
+            att_parsed = EntryName.parse(att.name)
+            assert att_parsed is not None
+            final_name = f"{new_prefix:02d}-{att_parsed.tail}"
             stage_att = staging_path / final_name
             shutil.move(str(att), str(stage_att))
             staged.append((stage_att, dest_dir / final_name))
@@ -161,9 +192,29 @@ def _hoist_stage_bundle(
 # hoist
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class HoistArgs:
+    target: str
+    keep_index: bool
+    force: bool
+    before: str | None
+    dry_run: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(
+            target=ns.target,
+            keep_index=ns.keep_index,
+            force=ns.force,
+            before=ns.before,
+            dry_run=ns.dry_run,
+        )
+
+
 def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Dissolve directory, hoist children."""
-    source_path = resolve_and_validate(args.target, rhidoc_root).path
+    a = HoistArgs.from_namespace(args)
+    source_path = resolve_and_validate(a.target, rhidoc_root).path
 
     if not source_path.is_dir():
         raise RhidocError(f"Error: source is not a directory: {source_path}")
@@ -174,9 +225,9 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
     source_prefix = _flat_en.prefix
 
     parent_dir = source_path.parent
-    if args.before is not None:
+    if a.before is not None:
         try:
-            before_ref = DocRef.parse(args.before)
+            before_ref = DocRef.parse(a.before)
         except RhidocError as e:
             raise RhidocError(f"Invalid --before ref: {e}")
         insertion_start = before_ref.segments[-1]
@@ -185,8 +236,8 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     index_file = source_path / "00-index.md"
     has_index = index_file.exists()
-    keep_index = args.keep_index
-    force = args.force
+    keep_index = a.keep_index
+    force = a.force
 
     if has_index and not keep_index:
         content_lines = _count_content_lines(index_file)
@@ -197,7 +248,7 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
             )
 
     # Parent bundles: exclude the parent's own 00-index.md (prefix-0 file bundle)
-    # and the source directory's slot. Directory bundles at prefix 0 (e.g. 00-codex/)
+    # and the source directory's slot. Directory bundles at prefix 0 (e.g. 00-handbook/)
     # are kept and participate in renumbering like any other numbered entry.
     parent_bundles = [
         b for b in bundle_mod.list_bundles(parent_dir)
@@ -211,7 +262,9 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     # Source children
     source_child_bundles = bundle_mod.list_bundles(source_path)
-    dir_slug = EntryName.parse(source_path.name).tail
+    _source_en = EntryName.parse(source_path.name)
+    assert _source_en is not None
+    dir_slug = _source_en.tail
 
     index_bundle = next((b for b in source_child_bundles if b.prefix == 0), None)
     index_attachments: list[Path] = list(index_bundle.attachments) if index_bundle else []
@@ -249,7 +302,7 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     rename_map = compute_rename_map(moves, rhidoc_root)
 
-    if args.dry_run:
+    if a.dry_run:
         print("=== Planned hoist ===")
         print(f"Dissolving: {source_path.relative_to(rhidoc_root)}")
         print(f"Children to hoist: {len(hoisted)}")
@@ -267,7 +320,7 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
             print(f"  {old.relative_to(rhidoc_root)} -> {new.relative_to(rhidoc_root)}")
         print()
         print(f"=== Ref rename map ({len(rename_map)} entries) ===")
-        for old_ref, new_ref in sorted(rename_map.items()):
+        for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old_ref} -> {new_ref}")
         print("\n(dry-run: no files modified)")
         return
@@ -303,7 +356,7 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
     print(f"Refs updated: {sum(rewrite_results.values())} replacement(s) across {len(rewrite_results)} file(s)")
     if rename_map:
         print(f"Rename map ({len(rename_map)} entries):")
-        for old_ref, new_ref in sorted(rename_map.items()):
+        for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old_ref} -> {new_ref}")
 
 
@@ -311,19 +364,41 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # copy
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class CopyArgs:
+    source: str
+    destination: str | None
+    at: str | None
+    before: str | None
+    rename_slug: str | None
+    dry_run: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(
+            source=ns.source,
+            destination=ns.destination,
+            at=ns.at,
+            before=ns.before,
+            rename_slug=ns.rename_slug,
+            dry_run=ns.dry_run,
+        )
+
+
 def cmd_copy(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Copy a file into the workspace."""
-    source_path = Path(args.source).resolve()
+    a = CopyArgs.from_namespace(args)
+    source_path = Path(a.source).resolve()
 
     # Combination guards (mirror move)
-    if args.at is not None and args.before is not None:
+    if a.at is not None and a.before is not None:
         raise RhidocError("--at and --before are mutually exclusive")
-    if (args.at is not None or args.before is not None) and args.destination is not None:
+    if (a.at is not None or a.before is not None) and a.destination is not None:
         raise RhidocError("--at/--before takes its destination from the ref; do not also pass a destination")
-    if args.at is None and args.before is None and args.destination is None:
+    if a.at is None and a.before is None and a.destination is None:
         raise RhidocError("provide a destination (append), or use --at/--before")
 
-    rename_slug = args.rename_slug
+    rename_slug = a.rename_slug
     if rename_slug is None:
         _stem_en = EntryName.parse(source_path.stem)
         rename_slug = _stem_en.tail if _stem_en is not None else source_path.stem
@@ -331,12 +406,13 @@ def cmd_copy(args: argparse.Namespace, rhidoc_root: Path) -> None:
     ext = source_path.suffix or ".md"
 
     shift_moves: list[tuple[Path, Path]] = []
-    rename_map: dict[str, str] = {}
+    rename_map: dict[DocRef, DocRef] = {}
 
-    if args.at is not None or args.before is not None:
+    if a.at is not None or a.before is not None:
         # Ref-addressed mode (--at or --before)
-        ref_str = args.at if args.at is not None else args.before
-        strict = (args.at is not None)
+        strict = (a.at is not None)
+        ref_str = a.at if strict else a.before
+        assert ref_str is not None
         try:
             ref = DocRef.parse(ref_str)
         except RhidocError as e:
@@ -378,15 +454,17 @@ def cmd_copy(args: argparse.Namespace, rhidoc_root: Path) -> None:
                     continue
                 all_members = ([bndl.root] if bndl.root else []) + list(bndl.attachments)
                 for member in all_members:
-                    tail = EntryName.parse(member.name).tail
-                    new_name = f"{bndl.prefix + 1:02d}-{tail}"
+                    member_parsed = EntryName.parse(member.name)
+                    assert member_parsed is not None
+                    new_name = f"{bndl.prefix + 1:02d}-{member_parsed.tail}"
                     shift_moves.append((member, dest_path / new_name))
             rename_map = compute_rename_map(shift_moves, rhidoc_root)
 
         prefix = target_prefix
     else:
         # Append mode
-        dest_path = resolve_and_validate(args.destination, rhidoc_root).path
+        assert a.destination is not None
+        dest_path = resolve_and_validate(a.destination, rhidoc_root).path
         if not dest_path.is_dir():
             raise RhidocError(f"Error: destination is not a directory: {dest_path}")
         entries = list_numbered_entries(dest_path)
@@ -402,7 +480,7 @@ def cmd_copy(args: argparse.Namespace, rhidoc_root: Path) -> None:
     new_name = f"{prefix:02d}-{rename_slug}{ext}"
     new_path = dest_path / new_name
 
-    if args.dry_run:
+    if a.dry_run:
         print(f"Would copy: {source_path.name} -> {new_path.relative_to(rhidoc_root)}")
         print(f"  Position: {prefix:02d}")
         print(f"  Slug: {rename_slug}")
@@ -412,7 +490,7 @@ def cmd_copy(args: argparse.Namespace, rhidoc_root: Path) -> None:
                 print(f"  {old.relative_to(rhidoc_root)} -> {new.relative_to(rhidoc_root)}")
         if rename_map:
             print(f"\n=== Ref rename map ({len(rename_map)} entries) ===")
-            for old_ref, new_ref in sorted(rename_map.items()):
+            for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
                 print(f"  {old_ref} -> {new_ref}")
         print("\n(dry-run: no files modified)")
         return
@@ -434,6 +512,6 @@ def cmd_copy(args: argparse.Namespace, rhidoc_root: Path) -> None:
         print(f"Shifted: {len(shift_moves)} sibling(s) renumbered")
     if rename_map:
         print(f"Rename map ({len(rename_map)} entries):")
-        for old_ref, new_ref in sorted(rename_map.items()):
+        for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old_ref} -> {new_ref}")
 

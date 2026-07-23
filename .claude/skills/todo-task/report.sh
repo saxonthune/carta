@@ -10,13 +10,13 @@ set -uo pipefail
 # renderer splits on it. Schemas (tab-separated):
 #
 #   task     <slug> <phase> <overall> <bucket> <commits> <worktree> <branch> <age> <notes>
-#   chain    <name> <status> <done_n> <total> <current> <phases_csv> <worktree> <branch>
+#   chain    <name> <status> <done_n> <total> <current> <phases_csv> <worktree> <branch> <progress> <age>
 #   epic     <name> <total> <done_n> <running_n> <failed_n> <members_csv>
 #   stale    <slug> <worktree>
 #   archived <slug> <overall> <commits> <age> <notes>
 #
 #   phase   ∈ {pending, running, crashed, done}
-#   status  ∈ {running, waiting, failed, complete}
+#   status  ∈ {running, waiting, awaiting-merge, conflict, finalizable, complete, failed}
 #   age     is seconds since the relevant file was last touched
 #
 # This script is strictly read-only. Usage:
@@ -190,19 +190,29 @@ emit_chains() {
       fi
     done
 
-    if run_is_alive "$run"; then
-      if [[ -n "$waiting_for" ]] && [[ "$(classify_slug "$waiting_for" | cut -d'|' -f2)" != "$SM_OVERALL_SUCCESS" ]]; then
-        status="waiting"; current="after ${waiting_for}"
-      else
-        status="running"
-      fi
+    local alive merge_state waiting_unsatisfied merged_on_trunk progress
+    if run_is_alive "$run"; then alive="true"; else alive="false"; fi
+    merge_state="$(read_run_field "$run" merge_state)"
+    waiting_unsatisfied="false"
+    if [[ -n "$waiting_for" ]] && [[ "$(classify_slug "$waiting_for" | cut -d'|' -f2)" != "$SM_OVERALL_SUCCESS" ]]; then
+      waiting_unsatisfied="true"
+    fi
+    if chain_merged_on_trunk "$REPO_ROOT" "$phases"; then
+      merged_on_trunk="true"
     else
-      # Dead with no trunk definition → failed (crashed before/at final merge).
-      status="failed"
+      merged_on_trunk="false"
+    fi
+    status="$(derive_chain_state "$alive" "$done_n" "$total" "$merge_state" "$waiting_unsatisfied" "$merged_on_trunk")"
+    progress="$(chain_progress "$status" "$done_n" "$total")"
+    if [[ "$status" == "$SM_CHAIN_WAITING" ]]; then
+      current="after ${waiting_for}"
     fi
 
-    printf 'chain\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-      "$name" "$status" "$done_n" "$total" "$current" "$phases" "$worktree" "$branch"
+    local cage logf="${TODO}/.running/chain-${name}.log"
+    if [[ -f "$logf" ]]; then cage="$(age_of "$logf")"; else cage="$(age_of "$run")"; fi
+
+    printf 'chain\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$name" "$status" "$done_n" "$total" "$current" "$phases" "$worktree" "$branch" "$progress" "$cage"
   done
 
   # Completed chains come from the trunk definition (run-record already gone).
@@ -212,8 +222,11 @@ emit_chains() {
     [[ -f "$TODO/.running/chain-${name}.run" ]] && continue
     phases="$(parse_result_field "$def" phases)"
     total="$(echo "$phases" | tr ',' '\n' | grep -c . || echo 0)"
-    printf 'chain\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-      "$name" "complete" "$total" "$total" "$NONE" "$phases" "$NONE" "$NONE"
+    local cprogress; cprogress="$(chain_progress "$SM_CHAIN_COMPLETE" "$total" "$total")"
+    # finalize-chain.sh writes this definition at completion, so its mtime is
+    # the chain's finish time.
+    printf 'chain\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$name" "complete" "$total" "$total" "$NONE" "$phases" "$NONE" "$NONE" "$cprogress" "$(age_of "$def")"
   done
 }
 
@@ -279,7 +292,7 @@ emit_stale() {
 # archive time, so `age` orders by most-recently-archived. Old-format archives
 # that predate the agent/merge split have no classifiable result → overall "-".
 emit_archived() {
-  local spec base stem ts slug agent_md merge_md overall commits age notes dev err
+  local spec base stem ts slug agent_md merge_md overall commits age notes dev err disp_file
   for spec in "$TODO"/.archived/*.md; do
     base="$(basename "$spec")"
     # Only the spec copy keys a record; skip the derived result files.
@@ -295,8 +308,20 @@ emit_archived() {
     [[ -f "$merge_md" ]] || merge_md=""
 
     overall="$NONE"; commits="$NONE"; notes=""
+    disp_file="${TODO}/.archived/${ts}-${slug}.disposition"
+    if [[ -f "$disp_file" ]]; then
+      overall="$(<"$disp_file")"; overall="${overall//[$'\t\r\n ']/}"
+    elif [[ -n "$agent_md" ]]; then
+      # Old archive, no stamp: best-effort — a genuine success stays success; any
+      # non-success archived task is shown as abandoned/done (we cannot retroactively
+      # know it was resolved).
+      if [[ "$(classify_task "$agent_md" "$merge_md")" == "$SM_OVERALL_SUCCESS" ]]; then
+        overall="$SM_OVERALL_SUCCESS"
+      else
+        overall="$SM_ARCHIVE_ABANDONED"
+      fi
+    fi
     if [[ -n "$agent_md" ]]; then
-      overall="$(classify_task "$agent_md" "$merge_md")"
       commits="$(parse_result_field "$agent_md" commits)"; commits="${commits:-0}"
       dev="$(parse_result_field "$agent_md" "surface deviations")"
       err="$(parse_result_field "$agent_md" error)"

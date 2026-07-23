@@ -1,6 +1,6 @@
 ---
 title: Plain Language
-summary: The plain-language standard for workspace prose — named standards, contrastive rules for jargon, word senses, parts of speech, prepositions, and sentence shape; the glossary as controlled vocabulary
+summary: The plain-language standard for workspace prose — named standards, contrastive rules for jargon, word senses, parts of speech, prepositions, and sentence shape; normative register (invariant, principle, illustration); the glossary as controlled vocabulary
 tags: [docs, plain-language, style, vocabulary, glossary]
 deps: []
 ---
@@ -58,6 +58,27 @@ Short sentences, active voice, the actor as the subject. One idea per sentence; 
 |---|---|
 | It should be noted that validation is performed by the loader. | The loader validates the input. |
 | There are three commands that operate on bundles. | Three commands operate on bundles. |
+
+## Normative Register
+
+A doc statement binds at one of three levels, and the language alone must tell the reader
+which — an LLM applies an unmarked heuristic as a hard rule.
+
+- **Invariant** — always true by construction, testable, apply literally. Written as a
+  flat declarative: "Every Order is exactly one of: draft, placed."
+- **Principle** — a design value that needs judgment to apply. Written as a triplet of
+  preference verb, reason, and limit: "Favor X — because Y — except when Z." The
+  preference verb ("favor", "prefer", "lean toward") marks the statement as
+  interpretable; the reason teaches the intent; the limit keeps it from hardening into
+  a rule.
+- **Illustration** — an example, not a claim, marked as one: "e.g.", "such as".
+
+| ✗ Unmarked | ✓ Marked |
+|---|---|
+| Differentiation over addition. | Favor differentiation over addition — a new need is usually an existing concept refined — except when no current concept's purpose covers it. |
+
+State an invariant with no preference verb, and state a judgment call with one — never
+as a flat command.
 
 ## The Glossary Is the Controlled Vocabulary
 

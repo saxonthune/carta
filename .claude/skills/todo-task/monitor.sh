@@ -97,7 +97,7 @@ overall_label() {
   case "$1" in
     "$SM_OVERALL_SUCCESS")      echo "success" ;;
     "$SM_OVERALL_READY")        echo "ready" ;;
-    "$SM_OVERALL_NOOP")         echo "no-op" ;;
+    "$SM_OVERALL_NOOP")         echo "no changes" ;;
     "$SM_OVERALL_TRUNK_LEAK")   echo "trunk-leak" ;;
     "$SM_OVERALL_CONFLICT")     echo "conflict" ;;
     "$SM_OVERALL_DIRTY")        echo "dirty" ;;
@@ -169,15 +169,15 @@ parse_records() {
             N_CRASHED=$((N_CRASHED+1)) ;;
         esac ;;
       chain)
-        local name cstatus done_n total current phases cw cb
-        IFS=$'\t' read -r _ name cstatus done_n total current phases cw cb <<< "$rec"
+        local name cstatus done_n total current phases cw cb cprogress cage
+        IFS=$'\t' read -r _ name cstatus done_n total current phases cw cb cprogress cage <<< "$rec"
         case "$cstatus" in
           complete)
             # A completed chain counts as a success and surfaces in Recent.
-            recent_raw+=("$(printf '0\t%s\t%s\t%s\t%s' "$SM_OVERALL_SUCCESS" "chain:${name}" "$NONE" "$NONE")")
+            recent_raw+=("$(printf '%s\t%s\t%s\t%s\t%s' "$cage" "$SM_OVERALL_SUCCESS" "chain:${name}" "$NONE" "$NONE")")
             N_SUCCESS=$((N_SUCCESS+1)) ;;
           *)
-            CHAINS+=("$(printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' "$name" "$cstatus" "$done_n" "$total" "$current" "$phases" "$cw" "$cb")")
+            CHAINS+=("$(printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' "$name" "$cstatus" "$done_n" "$total" "$current" "$phases" "$cw" "$cb" "$cprogress")")
             N_CHAINS=$((N_CHAINS+1)) ;;
         esac ;;
       epic)
@@ -283,12 +283,13 @@ render_overview() {
     for e in "${RECENT_TOP[@]}"; do
       IFS=$'\t' read -r age overall slug commits notes <<< "$e"
       col="$(overall_color "$overall")"; lbl="$(overall_label "$overall")"
-      local note_disp=""
+      local note_disp="" commit_disp=""
       [[ "$notes" != "$NONE" && -n "$notes" ]] && note_disp="$(truncate "$notes" "$nw")"
-      printf '  %s%-10s%s %-*s %s%s · %sc %s%s%s\n' \
+      [[ "$commits" != "$NONE" ]] && commit_disp="· ${commits}c"
+      printf '  %s%-10s%s %-*s %s%s %s %s%s%s\n' \
         "$col" "$lbl" "$RESET" \
         "$slugw" "$(truncate "$slug" "$slugw")" \
-        "$DIM" "$(age_ago "$age")" "$commits" "$note_disp" "$RESET" "$EL"
+        "$DIM" "$(age_ago "$age")" "$commit_disp" "$note_disp" "$RESET" "$EL"
     done
     printf '%s\n' "$EL"
   fi
@@ -356,28 +357,44 @@ render_active() {
 
   if (( N_CHAINS > 0 )); then
     printf ' %sChains%s%s\n' "$BOLD" "$RESET" "$EL"
-    local e name cstatus done_n total current phases cw cb col
+    local e name cstatus done_n total current phases cw cb cprogress col
     local -a ph_arr=()
     local i ph ph_start
     for e in "${CHAINS[@]}"; do
-      IFS=$'\t' read -r name cstatus done_n total current phases cw cb <<< "$e"
-      col="$YELLOW"; [[ "$cstatus" == failed ]] && col="$RED"
+      IFS=$'\t' read -r name cstatus done_n total current phases cw cb cprogress <<< "$e"
+      col="$YELLOW"; [[ "$cstatus" == failed || "$cstatus" == conflict ]] && col="$RED"
       case "$cstatus" in
         running)
-          printf '  %s%s%s  %srunning%s  phase %d/%d: %s%s\n' \
+          printf '  %s%s%s  %srunning%s  %s: %s%s\n' \
             "$BOLD" "$name" "$RESET" \
-            "$col" "$RESET" "$(( done_n + 1 ))" "$total" "$(truncate "$current" 30)" "$EL" ;;
+            "$col" "$RESET" "$cprogress" "$(truncate "$current" 30)" "$EL" ;;
         failed)
-          printf '  %s%s%s  %sfailed at phase %d/%d: %s%s%s\n' \
+          printf '  %s%s%s  %sfailed at %s: %s%s%s\n' \
             "$BOLD" "$name" "$RESET" \
-            "$col" "$(( done_n + 1 ))" "$total" "$(truncate "$current" 30)" "$RESET" "$EL" ;;
+            "$col" "$cprogress" "$(truncate "$current" 30)" "$RESET" "$EL" ;;
         waiting)
           printf '  %s%s%s  %swaiting%s  %s%s%s\n' \
             "$BOLD" "$name" "$RESET" "$col" "$RESET" "$DIM" "$(truncate "$current" 40)" "$EL" ;;
+        awaiting-merge)
+          printf '  %s%s%s  %sready to merge%s  %s%s\n' \
+            "$BOLD" "$name" "$RESET" \
+            "$CYAN" "$RESET" "$cprogress" "$EL" ;;
+        conflict)
+          printf '  %s%s%s  %smerge conflict%s  %s%s\n' \
+            "$BOLD" "$name" "$RESET" \
+            "$col" "$RESET" "$cprogress" "$EL" ;;
+        finalizable)
+          printf '  %s%s%s  %smerged — finalize%s  %s%s\n' \
+            "$BOLD" "$name" "$RESET" \
+            "$CYAN" "$RESET" "$cprogress" "$EL" ;;
       esac
       [[ "$cw" != "$NONE" ]] && printf '      %sworktree%s %s%s\n' "$DIM" "$RESET" "$cw" "$EL"
       IFS=',' read -ra ph_arr <<< "$phases"
-      if [[ "$cstatus" == "waiting" ]]; then ph_start=0; else ph_start=$(( done_n + 1 )); fi
+      case "$cstatus" in
+        waiting) ph_start=0 ;;
+        running) ph_start=$(( done_n + 1 )) ;;
+        *) ph_start=${#ph_arr[@]} ;;
+      esac
       for (( i = ph_start; i < ${#ph_arr[@]}; i++ )); do
         ph="${ph_arr[$i]}"
         [[ -n "$ph" ]] && printf '      %squeued%s  %s%s\n' "$DIM" "$RESET" "$ph" "$EL"
@@ -396,6 +413,8 @@ render_archived_rows() {
     IFS=$'\t' read -r age overall slug commits notes <<< "$e"
     if [[ "$overall" == "$NONE" ]]; then
       col="$DIM"; lbl="archived"
+    elif [[ "$overall" == "$SM_ARCHIVE_ABANDONED" ]]; then
+      col="$DIM"; lbl="done"
     else
       col="$(overall_color "$overall")"; lbl="$(overall_label "$overall")"
     fi
@@ -411,37 +430,50 @@ render_archived_rows() {
 
 render_chains() {
   [[ ${#CHAINS[@]} -eq 0 ]] && return
-  local e name cstatus done_n total current phases cw cb col
+  local e name cstatus done_n total current phases cw cb cprogress col
   local -a ph_arr=()
   local i ph ph_start nw
   nw=$(( COLS - 44 )); (( nw < 10 )) && nw=10
   for e in "${CHAINS[@]}"; do
-    IFS=$'\t' read -r name cstatus done_n total current phases cw cb <<< "$e"
+    IFS=$'\t' read -r name cstatus done_n total current phases cw cb cprogress <<< "$e"
     col="$YELLOW"
-    [[ "$cstatus" == "failed" ]] && col="$RED"
+    [[ "$cstatus" == "failed" || "$cstatus" == "conflict" ]] && col="$RED"
     case "$cstatus" in
       running)
-        printf '  %s%s%s  %srunning%s  phase %d/%d: %s%s\n' \
+        printf '  %s%s%s  %srunning%s  %s: %s%s\n' \
           "$BOLD" "$(truncate "$name" 24)" "$RESET" \
-          "$col" "$RESET" "$(( done_n + 1 ))" "$total" \
+          "$col" "$RESET" "$cprogress" \
           "$(truncate "$current" "$nw")" "$EL" ;;
       failed)
-        printf '  %s%s%s  %sfailed at phase %d/%d: %s%s%s\n' \
+        printf '  %s%s%s  %sfailed at %s: %s%s%s\n' \
           "$BOLD" "$(truncate "$name" 24)" "$RESET" \
-          "$col" "$(( done_n + 1 ))" "$total" \
+          "$col" "$cprogress" \
           "$(truncate "$current" "$nw")" "$RESET" "$EL" ;;
       waiting)
         printf '  %s%s%s  %swaiting%s  %s%s%s\n' \
           "$BOLD" "$(truncate "$name" 24)" "$RESET" \
           "$col" "$RESET" "$DIM" "$(truncate "$current" "$nw")" "$EL" ;;
+      awaiting-merge)
+        printf '  %s%s%s  %sready to merge%s  %s%s\n' \
+          "$BOLD" "$(truncate "$name" 24)" "$RESET" \
+          "$CYAN" "$RESET" "$cprogress" "$EL" ;;
+      conflict)
+        printf '  %s%s%s  %smerge conflict%s  %s%s\n' \
+          "$BOLD" "$(truncate "$name" 24)" "$RESET" \
+          "$col" "$RESET" "$cprogress" "$EL" ;;
+      finalizable)
+        printf '  %s%s%s  %smerged — finalize%s  %s%s\n' \
+          "$BOLD" "$(truncate "$name" 24)" "$RESET" \
+          "$CYAN" "$RESET" "$cprogress" "$EL" ;;
     esac
     # Indented upcoming phases (done phases hidden, current phase named above)
+    # Gate to running/waiting only — other states have no queued work to show.
     IFS=',' read -ra ph_arr <<< "$phases"
-    if [[ "$cstatus" == "waiting" ]]; then
-      ph_start=0
-    else
-      ph_start=$(( done_n + 1 ))
-    fi
+    case "$cstatus" in
+      waiting) ph_start=0 ;;
+      running) ph_start=$(( done_n + 1 )) ;;
+      *) ph_start=${#ph_arr[@]} ;;
+    esac
     for (( i = ph_start; i < ${#ph_arr[@]}; i++ )); do
       ph="${ph_arr[$i]}"
       [[ -n "$ph" ]] && printf '    %squeued%s  %s%s\n' "$DIM" "$RESET" "$ph" "$EL"

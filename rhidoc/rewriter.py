@@ -2,6 +2,93 @@ import re
 import uuid
 from pathlib import Path
 
+from .docref import DocRef
+
+
+# Inline markdown link target: the `path` in `](path)` or `](<path>)`. Targets with
+# spaces (e.g. a `](path "title")` form) don't match and are left untouched — file
+# links have no spaces, so this stays conservative.
+_MD_LINK_RE = re.compile(r'\]\((?P<lb><)?(?P<target>[^)\s>]+)(?P<rb>>)?\)')
+
+
+def _resolved_link_path(linking_file: Path, target: str) -> Path | None:
+    """Resolve a link target to an absolute path, or None if it isn't a local path.
+
+    Drops the anchor, and skips URLs and mailto: — only workspace-relative file
+    links are candidates. Path math only; the target need not exist.
+    """
+    clean = target.split('#', 1)[0].strip()
+    if not clean or '://' in clean or clean.startswith('mailto:'):
+        return None
+    return (linking_file.parent / clean).resolve()
+
+
+def find_relative_link_breaks(
+    files: list[Path],
+    renames: list[tuple[Path, Path]],
+) -> list[tuple[Path, str]]:
+    """Find inline relative links whose target resolves to a rename's old path.
+
+    Returns (linking_file, target_str) pairs. Scan the files BEFORE executing the
+    moves, while their targets still resolve against the current tree.
+    """
+    old_paths = {old.resolve() for old, _ in renames}
+    breaks: list[tuple[Path, str]] = []
+    for fpath in files:
+        try:
+            text = fpath.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for m in _MD_LINK_RE.finditer(text):
+            resolved = _resolved_link_path(fpath, m.group('target'))
+            if resolved is not None and resolved in old_paths:
+                breaks.append((fpath, m.group('target')))
+    return breaks
+
+
+def rewrite_relative_links(
+    files: list[Path],
+    renames: list[tuple[Path, Path]],
+) -> dict[Path, int]:
+    """Rewrite inline relative links whose target resolves to a rename's old path.
+
+    Swaps the target's final path segment for the new basename, preserving the
+    directory portion and any anchor. Safe only when the file stays in place (rename),
+    so the directory portion of every link is still correct. Returns {file: count}.
+    """
+    old_to_new = {old.resolve(): new for old, new in renames if old.name != new.name}
+    if not old_to_new:
+        return {}
+
+    results: dict[Path, int] = {}
+    for fpath in files:
+        try:
+            text = fpath.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+
+        count = 0
+
+        def repl(m: re.Match) -> str:
+            nonlocal count
+            resolved = _resolved_link_path(fpath, m.group('target'))
+            new_path = old_to_new.get(resolved) if resolved is not None else None
+            if new_path is None:
+                return m.group(0)
+            path_part, sep, anchor = m.group('target').partition('#')
+            segments = path_part.rsplit('/', 1)
+            segments[-1] = new_path.name
+            new_target = '/'.join(segments) + sep + anchor
+            count += 1
+            return f']({m.group("lb") or ""}{new_target}{m.group("rb") or ""})'
+
+        new_text = _MD_LINK_RE.sub(repl, text)
+        if count:
+            fpath.write_text(new_text, encoding="utf-8")
+            results[fpath] = count
+
+    return results
+
 
 def collect_md_files(rhidoc_root: Path, external_paths: list[Path]) -> list[Path]:
     """Return all .md files to scan for ref updates.
@@ -35,7 +122,7 @@ def collect_md_files(rhidoc_root: Path, external_paths: list[Path]) -> list[Path
 
 def rewrite_refs(
     files: list[Path],
-    rename_map: dict[str, str],
+    rename_map: dict[DocRef, DocRef],
 ) -> dict[Path, int]:
     """Rewrite doc refs in files using a two-pass placeholder strategy.
 
@@ -51,16 +138,13 @@ def rewrite_refs(
         return {}
 
     # Build placeholder map: old_ref -> (compiled_pattern, placeholder, new_ref)
-    placeholders: dict[str, tuple] = {}
+    placeholders: dict[DocRef, tuple] = {}
     for old, new in rename_map.items():
         ph = f"__RHIDOCREF_{uuid.uuid4().hex[:8]}__"
-        # Word-boundary-aware: preceded by non-word char (or start),
-        # not followed by a digit-after-dot (avoids partial matches on longer refs)
-        pattern = re.compile(r'(?<!\w)' + re.escape(old) + r'(?!\.[a-zA-Z0-9])')
-        placeholders[old] = (pattern, ph, new)
+        placeholders[old] = (old.matcher(), ph, new)
 
     # Sort by length descending so longer refs are replaced first
-    sorted_old = sorted(placeholders.keys(), key=len, reverse=True)
+    sorted_old = sorted(placeholders.keys(), key=lambda r: len(str(r)), reverse=True)
 
     results: dict[Path, int] = {}
     for fpath in files:
@@ -81,7 +165,7 @@ def rewrite_refs(
         # Pass 2: placeholders → new refs
         for old_ref in sorted_old:
             _, ph, new_ref = placeholders[old_ref]
-            text = text.replace(ph, new_ref)
+            text = text.replace(ph, str(new_ref))
 
         if text != original:
             fpath.write_text(text, encoding="utf-8")
@@ -90,7 +174,7 @@ def rewrite_refs(
     return results
 
 
-def apply_rename_to_text(text: str, rename_map: dict[str, str]) -> str:
+def apply_rename_to_text(text: str, rename_map: dict[DocRef, DocRef]) -> str:
     """Apply a rename map to a text string using the same two-pass strategy.
 
     Useful for updating verbatim content (e.g. MANIFEST.md preamble, tag index)
@@ -99,13 +183,12 @@ def apply_rename_to_text(text: str, rename_map: dict[str, str]) -> str:
     if not rename_map:
         return text
 
-    placeholders: dict[str, tuple] = {}
+    placeholders: dict[DocRef, tuple] = {}
     for old, new in rename_map.items():
         ph = f"__RHIDOCREF_{uuid.uuid4().hex[:8]}__"
-        pattern = re.compile(r'(?<!\w)' + re.escape(old) + r'(?!\.[a-zA-Z0-9])')
-        placeholders[old] = (pattern, ph, new)
+        placeholders[old] = (old.matcher(), ph, new)
 
-    sorted_old = sorted(placeholders.keys(), key=len, reverse=True)
+    sorted_old = sorted(placeholders.keys(), key=lambda r: len(str(r)), reverse=True)
 
     # Pass 1: old refs → placeholders
     for old_ref in sorted_old:
@@ -115,6 +198,6 @@ def apply_rename_to_text(text: str, rename_map: dict[str, str]) -> str:
     # Pass 2: placeholders → new refs
     for old_ref in sorted_old:
         _, ph, new_ref = placeholders[old_ref]
-        text = text.replace(ph, new_ref)
+        text = text.replace(ph, str(new_ref))
 
     return text

@@ -453,6 +453,11 @@ def test_lint_no_violation_clean():
     ("volatile-snapshot", "Currently, this is the default."),
     ("volatile-snapshot", "At the time of writing this was true."),
     ("volatile-snapshot", "At present the system supports X."),
+    ("open-question", "Open question: should retries be capped?"),
+    ("open-question", "Open questions remain about the cache."),
+    ("rename-narration", "Session, formerly Connection, wraps the socket."),
+    ("rename-narration", "Renamed from Connection during a refactor."),
+    ("rename-narration", "This module was previously called the resolver."),
 ])
 def test_lint_banned_pattern(pattern_name, text):
     node = _make_node(text)

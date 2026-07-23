@@ -60,7 +60,7 @@ The final segment resolves to either a file (`NN-slug.md`) or a directory's inde
 ### Examples
 
 ```
-doc00.03        → 00-codex/03-conventions.md
+doc00.03        → 00-handbook/03-conventions.md
 doc01.01        → 04-product-strategy/01-mission.md
 doc01.09.03     → 04-product-strategy/08-research/03-decomposition-and-composition-theory.md
 ```

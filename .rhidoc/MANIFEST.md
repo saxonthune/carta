@@ -2,7 +2,7 @@
 
 Machine-readable index for AI navigation. Read this file first, then open only the docs relevant to your query.
 
-**Retrieval strategy:** See doc00.00 (codex index) for how to find and read docs efficiently.
+**Retrieval strategy:** See doc00.00 (handbook index) for how to find and read docs efficiently.
 
 ## Column Definitions
 
@@ -16,17 +16,25 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 Orphaned attachments (non-md files with no corresponding root .md) are reported as warnings on stderr during regeneration and do not appear in this table.
 
-## 00-codex — Codex
+## 00-handbook — Handbook
 
 | Ref | File | Summary | Tags | Deps | Refs | Attachments |
 |-----|------|---------|------|------|------|-------------|
 
 | doc00.00 | `00-index.md` |  |  | — | doc01.09.05 | — |
 | doc00.01 | `01-about.md` | Why this workspace exists, how to read it, two-sources-of-truth theory | docs, meta, theory | — | — | — |
-| doc00.02 | `02-maintenance.md` | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, prefer facts to prose, author freely then structure separately, when to grow detail | docs, maintenance, philosophy | — | doc01.09.12 | — |
+| doc00.02 | `02-maintenance.md` | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, prefer facts to prose, author freely then structure separately, docs grow by unfolding | docs, maintenance, philosophy | — | doc01.09.12 | — |
 | doc00.03 | `03-conventions.md` | Cross-reference syntax, frontmatter schema, file naming, writing style | docs, conventions | — | doc01.10 | — |
-| doc00.04 | `04-plain-language.md` | The plain-language standard for workspace prose — named standards, contrastive rules for jargon, word senses, parts of speech, prepositions, and sentence shape; the glossary as controlled vocabulary | docs, plain-language, style, vocabulary, glossary | — | — | — |
-| doc00.05 | `05-controlled-vocabulary.md` | The workspace glossary as a controlled vocabulary — entry kinds and sentence patterns from fact-based modeling (ORM), a worked example, and the naming rule | glossary, vocabulary, facts, subtypes, naming, docs | — | — | — |
+| doc00.04 | `04-plain-language.md` | The plain-language standard for workspace prose — named standards, contrastive rules for jargon, word senses, parts of speech, prepositions, and sentence shape; normative register (invariant, principle, illustration); the glossary as controlled vocabulary | docs, plain-language, style, vocabulary, glossary | — | — | — |
+| doc00.05 | `05-controlled-vocabulary.md` | The workspace glossary as a controlled vocabulary — which terms are admitted, entry kinds and sentence patterns from fact-based modeling (ORM), a worked example, and the naming rule | glossary, vocabulary, facts, subtypes, naming, docs | — | — | — |
+| doc00.06 | `06-drift.md` | Why docs drift and the rules that prevent it — the two-copies condition, the reason-to-write test, the generate-or-type escape for shared facts, timeless writing, and the banned-pattern list | docs, drift, maintenance, style | — | — | — |
+
+### User Handbook
+
+| Ref | File | Summary | Tags | Deps | Refs | Attachments |
+|-----|------|---------|------|------|------|-------------|
+
+| doc00.07.00 | `07-user-handbook/00-index.md` |  |  | — | — | — |
 
 ## 01-product-strategy — Product Strategy
 
@@ -78,7 +86,7 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 | doc01.09.10 | `09-research/10-contract-first-development.md` | The action contract is the skeleton, not the database — define contracts, build screens against mocks, defer persistence until the contract stabilizes | contract-first, mock-first, action-based, unfolding, persistence, methodology | doc01.05.03, doc01.09.09 | doc01.09.11 | — |
 | doc01.09.11 | `09-research/11-concept-first-sequencing.md` | How concept-driven design composes with unfolding — concepts before code, contracts before backends, the ordering that makes AI-powered development coherent | concepts, jackson, unfolding, sequencing, methodology, ai | doc01.05.03, doc01.09.10, doc01.09.09 | — | — |
 | doc01.09.12 | `09-research/12-structured-authoring-and-the-format-tax.md` | Evidence that constraining LLM generation through a structured write-API imposes a measurable quality tax, while post-hoc structuring of a free draft does not — author freely, structure separately | authoring, structure, format-tax, constrained-decoding, specs, ai, generation | doc01.09.05, doc01.09.01, doc01.09.06, doc00.02 | doc01.09.13 | — |
-| doc01.09.13 | `09-research/13-plain-language-instruction-signal.md` | Sources behind the shipped plain-language guide (doc00.04), why an instruction signal beats linters and word lists, and the design constraints on the condensed artifact | plain-language, register, instruction-signal, authoring, codex, vocabulary | doc01.09.12 | — | — |
+| doc01.09.13 | `09-research/13-plain-language-instruction-signal.md` | Sources behind the shipped plain-language guide (doc00.04), why an instruction signal beats linters and word lists, and the design constraints on the condensed artifact | plain-language, register, instruction-signal, authoring, handbook, vocabulary | doc01.09.12 | — | — |
 
 ## 02-architecture — Architecture
 
@@ -143,7 +151,6 @@ Quick lookup for file-path→doc mapping:
 | `category theory` | doc01.05.01 |
 | `category-theory` | doc01.09.03 |
 | `cli` | doc03.02 |
-| `codex` | doc01.09.13 |
 | `coding` | doc01.05.01 |
 | `complexity` | doc01.05.02, doc01.09.03 |
 | `composition` | doc01.09.03 |
@@ -157,8 +164,9 @@ Quick lookup for file-path→doc mapping:
 | `decision-tables` | doc01.09.08 |
 | `decomposition` | doc01.09.03, doc01.09.04 |
 | `development` | doc01.05.03 |
-| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc01.06, doc01.09.05, doc01.10 |
+| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc00.06, doc01.06, doc01.09.05, doc01.10 |
 | `docs-api` | doc01.07.01, doc03.01.01 |
+| `drift` | doc00.06 |
 | `efficiency` | doc01.09.01 |
 | `elicitation` | doc01.09.05 |
 | `entities` | doc01.09.08 |
@@ -175,6 +183,7 @@ Quick lookup for file-path→doc mapping:
 | `glossary` | doc00.04, doc00.05, doc01.03, doc01.04 |
 | `grammar` | doc01.10 |
 | `guards` | doc03.01.04 |
+| `handbook` | doc01.09.13 |
 | `information-architecture` | doc01.09.05 |
 | `information-theory` | doc01.05.02, doc01.09.03, doc01.09.04 |
 | `installation` | doc03.02 |
@@ -183,7 +192,7 @@ Quick lookup for file-path→doc mapping:
 | `jackson` | doc01.09.11 |
 | `living-structure` | doc01.09.09 |
 | `llm` | doc01.09.04 |
-| `maintenance` | doc00.02 |
+| `maintenance` | doc00.02, doc00.06 |
 | `meta` | doc00.01 |
 | `methodology` | doc01.05.03, doc01.09.10, doc01.09.11 |
 | `mission` | doc01.01 |
@@ -221,7 +230,7 @@ Quick lookup for file-path→doc mapping:
 | `static-analysis` | doc01.09.04 |
 | `structure` | doc01.09.12 |
 | `structure-preserving` | doc01.05.03 |
-| `style` | doc00.04 |
+| `style` | doc00.04, doc00.06 |
 | `subtypes` | doc00.05 |
 | `syntax` | doc01.10 |
 | `terms` | doc01.04 |

@@ -163,7 +163,7 @@ def render_section(title_dir: Path, rhidoc_root: Path,
         fm, _ = read_frontmatter(index_file)
         section_title = fm.get("title", title_dir.name)
 
-    slug = title_dir.name  # e.g. "00-codex"
+    slug = title_dir.name  # e.g. "00-handbook"
     lines = [f"## {slug} — {section_title}"]
     lines.append("")
 

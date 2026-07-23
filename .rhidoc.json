@@ -6,5 +6,21 @@
     "CLAUDE.md",
     ".claude/skills/**/*.md",
     ".cursor/**/*.md"
-  ]
+  ],
+  "installed": {
+    "templatesVersion": "2026.07.23",
+    "files": [
+      ".claude/skills/docs-development/SKILL.md",
+      ".claude/skills/rhidoc-cli/SKILL.md",
+      ".claude/skills/rhidoc-setup/SKILL.md",
+      ".rhidoc/00-handbook/00-index.md",
+      ".rhidoc/00-handbook/01-about.md",
+      ".rhidoc/00-handbook/02-maintenance.md",
+      ".rhidoc/00-handbook/03-conventions.md",
+      ".rhidoc/00-handbook/04-plain-language.md",
+      ".rhidoc/00-handbook/05-controlled-vocabulary.md",
+      ".rhidoc/00-handbook/06-drift.md",
+      ".rhidoc/AGENTS.md"
+    ]
+  }
 }

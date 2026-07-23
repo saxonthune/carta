@@ -102,7 +102,7 @@ Some mechanisms are format-level but their *content* is user-level:
 
 ## Init
 
-`rhidoc init` creates the bare minimum: `workspace.json`, `MANIFEST.md`, `00-codex/00-index.md`. This is format-level scaffolding — the minimum valid workspace. No templates, no pre-created directories, no seed files beyond the codex.
+`rhidoc init` creates the bare minimum: `workspace.json`, `MANIFEST.md`, `00-handbook/00-index.md`. This is format-level scaffolding — the minimum valid workspace. No templates, no pre-created directories, no seed files beyond the handbook.
 
 All arrangement decisions come from the user or their AI agent after init. In an AI-assisted conversational flow, the agent can scaffold the workspace interactively — "What's this project about? Let me set up a workspace for you." This keeps arrangement decisions in the user's session rather than baked into the CLI.
 

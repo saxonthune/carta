@@ -1,13 +1,13 @@
 ---
 title: Plain Language Instruction Signal
 summary: Sources behind the shipped plain-language guide (doc00.04), why an instruction signal beats linters and word lists, and the design constraints on the condensed artifact
-tags: [plain-language, register, instruction-signal, authoring, codex, vocabulary]
+tags: [plain-language, register, instruction-signal, authoring, handbook, vocabulary]
 deps: [doc01.09.12]
 ---
 
 # Plain Language Instruction Signal
 
-The codex ships a plain-language guide (doc00.04) as a single condensed artifact that skills compose by reference. This doc records the sources it condenses, the alternatives that were ruled out, and the design constraints that shaped it.
+The handbook ships a plain-language guide (doc00.04) as a single condensed artifact that skills compose by reference. This doc records the sources it condenses, the alternatives that were ruled out, and the design constraints that shaped it.
 
 ## The Problem
 
@@ -41,7 +41,7 @@ Register-steering research supports the cost model: styles lose content in propo
 
 ## Design Constraints on the Artifact
 
-- **One condensed copy.** The template in `rhidoc/templates/` is the sole condensed artifact, shipped into every workspace as a codex doc via init/rehydrate. A second condensed intermediate would drift from the first.
+- **One condensed copy.** The template in `rhidoc/templates/` is the sole condensed artifact, shipped into every workspace as a handbook doc via init/rehydrate. A second condensed intermediate would drift from the first.
 - **Neutral.** The guide states the standard and nothing else — no opinions on when it applies. Each consuming skill (docs-development, auditors, pass-through cleaners) owns its own invocation guidance.
 - **Examples carry the tokens.** Per rule: a one-line statement, a one-clause rationale, then contrastive pairs. Roughly two-thirds of the token budget sits in the pairs, because a pair demonstrates the boundary a definition only describes.
 - **Composable size.** Small enough to load into another skill's context without crowding it; a guide that outgrows that budget gets summarized rather than obeyed.

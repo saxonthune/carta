@@ -2,6 +2,7 @@
 import argparse
 import shutil
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..errors import RhidocError
@@ -20,9 +21,19 @@ from .._glyphs import Glyphs, for_stream
 # cat
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class CatArgs:
+    ref: str
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(ref=ns.ref)
+
+
 def cmd_cat(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Print document contents to stdout."""
-    target = resolve_arg(args.ref, rhidoc_root).path
+    a = CatArgs.from_namespace(args)
+    target = resolve_arg(a.ref, rhidoc_root).path
     if target.is_dir():
         target = target / "00-index.md"
     if not target.exists():
@@ -95,6 +106,7 @@ def _walk_tree(directory: Path, rhidoc_root: Path, prefix: str, *,
         child_prefix = prefix + (glyphs.indent if is_last else glyphs.vguide)
 
         if kind == 'dir':
+            assert extra is not None
             dir_entry = extra
             label = _entry_label(dir_entry, rhidoc_root, refs=refs, no_title=no_title, glyphs=glyphs)
             lines.append(prefix + connector + label)
@@ -102,6 +114,7 @@ def _walk_tree(directory: Path, rhidoc_root: Path, prefix: str, *,
                        refs=refs, no_title=no_title, no_sidecars=no_sidecars, lines=lines,
                        glyphs=glyphs)
         elif kind == 'root':
+            assert bndl.root is not None
             label = _entry_label(bndl.root, rhidoc_root, refs=refs, no_title=no_title, glyphs=glyphs)
             lines.append(prefix + connector + label)
             if not no_sidecars and bndl.attachments:
@@ -118,22 +131,41 @@ def _walk_tree(directory: Path, rhidoc_root: Path, prefix: str, *,
                         att_label = glyphs.attach + att.name
                     lines.append(child_prefix + att_connector + att_label)
         else:  # orphan
+            assert extra is not None
             att = extra
             lines.append(prefix + connector + att.name)
 
 
+@dataclass(frozen=True)
+class TreeArgs:
+    target: str | None
+    refs: bool
+    no_title: bool
+    no_sidecars: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(
+            target=ns.target,
+            refs=ns.refs,
+            no_title=ns.no_title,
+            no_sidecars=ns.no_sidecars,
+        )
+
+
 def cmd_tree(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Print workspace structure as a visual tree."""
-    if hasattr(args, "target") and args.target:
-        root = resolve_arg(args.target, rhidoc_root).path
+    a = TreeArgs.from_namespace(args)
+    if a.target:
+        root = resolve_arg(a.target, rhidoc_root).path
         if not root.is_dir():
             raise RhidocError(f"Error: {root} is not a directory")
     else:
         root = rhidoc_root
 
-    show_refs = getattr(args, "refs", False)
-    no_title = getattr(args, "no_title", False)
-    no_sidecars = getattr(args, "no_sidecars", False)
+    show_refs = a.refs
+    no_title = a.no_title
+    no_sidecars = a.no_sidecars
     glyphs = for_stream(sys.stdout)
 
     label = _entry_label(root, rhidoc_root, refs=show_refs, no_title=no_title, glyphs=glyphs)
@@ -147,30 +179,51 @@ def cmd_tree(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # regenerate
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class RegenerateArgs:
+    dry_run: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(dry_run=ns.dry_run)
+
+
 def cmd_regenerate(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Rebuild MANIFEST.md from doc frontmatter."""
+    a = RegenerateArgs.from_namespace(args)
     preamble = _load_preamble(rhidoc_root.name)
-    do_regenerate(rhidoc_root, preamble, dry_run=args.dry_run)
+    do_regenerate(rhidoc_root, preamble, dry_run=a.dry_run)
 
 
 # ---------------------------------------------------------------------------
 # rewrite
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class RewriteArgs:
+    mappings: list[str]
+    dry_run: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(mappings=ns.mappings, dry_run=ns.dry_run)
+
+
 def cmd_rewrite(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Rewrite doc refs from mappings. Both sides of each mapping are normalized to canonical form."""
-    rename_map: dict[str, str] = {}
+    a = RewriteArgs.from_namespace(args)
+    rename_map: dict[DocRef, DocRef] = {}
 
-    for pair in args.mappings:
+    for pair in a.mappings:
         if '=' not in pair:
             raise RhidocError(f"Error: invalid mapping {pair!r} — expected old=new format.")
         raw_old, raw_new = pair.split('=', 1)
         try:
-            old = str(DocRef.parse(raw_old.strip()))
+            old = DocRef.parse(raw_old.strip())
         except RhidocError as e:
             raise RhidocError(f"Error in mapping {pair!r} (old side): {e}")
         try:
-            new = str(DocRef.parse(raw_new.strip()))
+            new = DocRef.parse(raw_new.strip())
         except RhidocError as e:
             raise RhidocError(f"Error in mapping {pair!r} (new side): {e}")
         rename_map[old] = new
@@ -180,24 +233,38 @@ def cmd_rewrite(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     md_files = collect_rewritable_files(rhidoc_root)
 
-    if args.dry_run:
+    if a.dry_run:
         print(f"=== Ref rewrite plan ({len(rename_map)} mappings) ===")
-        for old, new in sorted(rename_map.items()):
+        for old, new in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old} -> {new}")
         print(f"\nScanning {len(md_files)} file(s)...")
+        matchers = [(old, old.matcher()) for old in rename_map]
         total = 0
+        files_with_matches = 0
         for fpath in md_files:
             try:
                 text = fpath.read_text(encoding='utf-8')
             except (OSError, UnicodeDecodeError):
                 continue
-            for old in rename_map:
-                matches = DocRef.SCAN.findall(text)
-                matches = [m for m in matches if m == old]
-                if matches:
-                    total += len(matches)
-                    print(f"  {display_path(fpath, rhidoc_root)}: {len(matches)} match(es) for {old}")
-        print(f"\nTotal: {total} replacement(s) would be made.")
+            # Report the matched line, not just a count: a ref shown as an example (in
+            # docs about rhidoc itself, which externalRefPaths can include) is rewritten
+            # exactly like a real reference, and only the line reveals which is which.
+            line_hits: list[tuple[int, str, DocRef, int]] = []
+            for lineno, line in enumerate(text.splitlines(), 1):
+                for old, pattern in matchers:
+                    n = sum(1 for _ in pattern.finditer(line))
+                    if n:
+                        line_hits.append((lineno, line.strip(), old, n))
+            if line_hits:
+                files_with_matches += 1
+                file_total = sum(n for *_, n in line_hits)
+                total += file_total
+                print(f"  {display_path(fpath, rhidoc_root)}: {file_total} match(es)")
+                for lineno, line, old, n in line_hits:
+                    suffix = f" x{n}" if n > 1 else ""
+                    print(f"      L{lineno} ({old}{suffix}): {line[:100]}")
+        print(f"\nTotal: {total} replacement(s) across {files_with_matches} file(s) would be made.")
+        print("Review the lines above — a ref used as an example is rewritten like a real one.")
         print("(dry-run: no files modified)")
         return
 
@@ -213,9 +280,27 @@ def cmd_rewrite(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # attach
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class AttachArgs:
+    host: str
+    source: str
+    rename: str | None
+    dry_run: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(
+            host=ns.host,
+            source=ns.source,
+            rename=ns.rename,
+            dry_run=ns.dry_run,
+        )
+
+
 def cmd_attach(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Copy an external file into a doc's bundle as an attachment."""
-    host_entry = resolve_and_validate(args.host, rhidoc_root)
+    a = AttachArgs.from_namespace(args)
+    host_entry = resolve_and_validate(a.host, rhidoc_root)
     host = host_entry.path
 
     if host.is_dir():
@@ -228,7 +313,7 @@ def cmd_attach(args: argparse.Namespace, rhidoc_root: Path) -> None:
             f"Did you swap <host> and <source>? Usage: rhidoc attach <host> <source>"
         )
 
-    source = Path(args.source)
+    source = Path(a.source)
     if not source.exists():
         raise RhidocError(f"Error: source does not exist: {source}")
     if source.is_dir():
@@ -238,7 +323,7 @@ def cmd_attach(args: argparse.Namespace, rhidoc_root: Path) -> None:
     if bndl is None:
         raise RhidocError(f"Error: host has no numeric prefix: {host.name}")
 
-    rename_arg = args.rename
+    rename_arg = a.rename
     if rename_arg:
         rename_path = Path(rename_arg)
         slug = rename_path.stem if rename_path.suffix else rename_arg
@@ -269,7 +354,7 @@ def cmd_attach(args: argparse.Namespace, rhidoc_root: Path) -> None:
     except Exception:
         bundle_label = host.name
 
-    if args.dry_run:
+    if a.dry_run:
         print(f"Would attach: {source} -> {display_path(dest, rhidoc_root)}")
         print(f"  Bundle: {bundle_label}")
         print(f"  Prefix: {bndl.prefix:02d}")
@@ -289,16 +374,27 @@ def cmd_attach(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # ls
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class LsArgs:
+    target: str | None
+    no_sidecars: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(target=ns.target, no_sidecars=ns.no_sidecars)
+
+
 def cmd_ls(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """List entries in a directory (mirrors Unix ls)."""
-    if hasattr(args, "target") and args.target:
-        target = resolve_arg(args.target, rhidoc_root).path
+    a = LsArgs.from_namespace(args)
+    if a.target:
+        target = resolve_arg(a.target, rhidoc_root).path
     else:
         target = rhidoc_root
     if not target.is_dir():
         raise RhidocError(f"Error: {target} is not a directory")
 
-    no_sidecars = getattr(args, "no_sidecars", False)
+    no_sidecars = a.no_sidecars
     glyphs = for_stream(sys.stdout)
 
     for entry in sorted(target.iterdir(), key=lambda p: p.name):
@@ -346,9 +442,19 @@ def _human_size(size: int) -> str:
     return f"{size}B"
 
 
+@dataclass(frozen=True)
+class BundleArgs:
+    ref: str
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(ref=ns.ref)
+
+
 def cmd_bundle(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Show a doc's bundle: host doc + attachments with sizes and display refs."""
-    host_entry = resolve_and_validate(args.ref, rhidoc_root)
+    a = BundleArgs.from_namespace(args)
+    host_entry = resolve_and_validate(a.ref, rhidoc_root)
     host = host_entry.path
     if host.is_dir():
         raise RhidocError(

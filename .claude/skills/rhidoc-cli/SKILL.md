@@ -203,6 +203,8 @@ Side effects:
   - Operates on bundles — non-md siblings sharing the source's numeric prefix travel with it.
   - Removes source from its parent; gap-closes source siblings (unless --no-gap-close).
   - Rewrites all cross-references in workspace + externalRefPaths.
+  - Warns about relative markdown links left pointing at a moved file — canonical refs
+    are rewritten, relative links are not (fix by hand or switch them to docXX.YY refs).
   - Regenerates MANIFEST.md (unless --no-regen).
 
 Flags:
@@ -365,9 +367,12 @@ Side effects:
   - Normalizes both sides of each mapping to canonical form.
   - Rewrites all canonical ref occurrences in workspace `.md` files and externalRefPaths.
   - Does NOT regenerate MANIFEST.md.
+  - Note: a ref used as an example (e.g. in docs about rhidoc itself, which externalRefPaths
+    can include) is rewritten just like a real reference. Preview with --dry-run first.
 
 Flags:
-  --dry-run  Show which files and how many replacements would be made.
+  --dry-run  Print each matched line with its line number and ref, not just per-file counts,
+             so an example ref is visible before it is rewritten. No files are modified.
 
 ### rename
 
@@ -384,7 +389,9 @@ Arguments:
 Side effects:
   - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
   - Renames the file/directory on disk (and renames attachment files to match the new slug).
-  - Does NOT rewrite cross-references (use `rhidoc rewrite` for that).
+  - Rewrites relative markdown links pointing at the renamed file (basename swap; the file
+    stays in place, so this is safe).
+  - Does NOT rewrite canonical docXX.YY refs — the coordinate is unchanged by a rename.
   - Regenerates MANIFEST.md (unless --no-regen).
 
 Flags:
@@ -392,40 +399,94 @@ Flags:
 
 ### init
 
-Initialize a new `.rhidoc/` workspace in the current directory, or refresh an existing one.
+Scaffold a new workspace in the current directory. Creates only; never refreshes.
 
 ```
 rhidoc init [--name TEXT] [--dir DIRNAME] [--portable]
-rhidoc init --rehydrate [--dry-run]
 ```
 
-Side effects (without --rehydrate):
+Side effects:
   - Creates `.rhidoc.json` marker in the current directory.
-  - Creates `DIRNAME/00-codex/00-index.md` and `DIRNAME/MANIFEST.md`.
-  - Hydrates `.claude/skills/rhidoc-cli/SKILL.md` (skips if exists).
+  - Creates `DIRNAME/00-handbook/` (7 docs), `DIRNAME/MANIFEST.md`, `DIRNAME/AGENTS.md`.
+  - Creates the empty `DIRNAME/00-handbook/07-user-handbook/` group — yours, never managed.
+  - Hydrates `.claude/skills/*/SKILL.md`.
+  - Records every file it wrote in the marker's `installed.files`.
   - Runs initial MANIFEST regeneration.
 
-Side effects (with --rehydrate):
-  - Overwrites `00-codex/*.md` with latest templates from installed rhidoc.
-  - Overwrites `.claude/skills/rhidoc-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
-  - Skips files that already match the latest version.
-  - Does NOT touch user-created docs outside 00-codex.
-  - Does NOT overwrite workspace.json fields (title, description, externalRefPaths).
+A file already present at one of these paths is SKIPPED and left unmanaged — rhidoc
+records only what it actually wrote, so it will never overwrite your file later.
+
+Errors if a workspace already exists. Use `rhidoc update` to refresh one.
 
 Flags:
   --name TEXT    Workspace title. Default: parent directory name.
   --dir DIRNAME  Workspace directory name. Default: `.rhidoc`.
   --portable     Also copy editable Python scripts into workspace (pip-free usage).
-  --rehydrate    Refresh templates and skills in an existing workspace.
-  --dry-run      With --rehydrate: show what would be updated without writing.
 
-When to use --rehydrate:
-  - After upgrading rhidoc (`pip install -e .` or `pip install --upgrade rhidoc`).
-  - To push template improvements to existing workspaces.
+### update
+
+Reconcile hydrated files against what the installed rhidoc ships.
+
+```
+rhidoc update [--dry-run] [--check]
+```
+
+Side effects:
+  - Removes files rhidoc installed but no longer ships (renamed or dropped templates).
+  - Rewrites hydrated files whose content differs from this version.
+  - Records the new file list and `templatesVersion` in the marker.
+  - Never touches a path rhidoc did not install — reported as `Unmanaged` and left alone.
+  - Never touches user-authored docs, `07-user-handbook/`, or workspace.json settings.
+  - Does NOT rewrite `00-index.md` bodies (regenerate owns those).
+
+Ownership comes from the marker's `installed.files`, written at init. A workspace from
+a rhidoc predating that record adopts the files at rhidoc's own paths on the first
+update, and reports — but never deletes — leftovers such as an old `00-codex/` section.
+
+Flags:
+  --dry-run    Show what would change without writing.
+  --check      Report drift without writing; exit non-zero if any hydrated file is
+               stale. For CI gates.
+
+When to use:
+  - After upgrading rhidoc (`pip install --upgrade rhidoc`).
+  - To pull template improvements into an existing workspace.
 
 Example:
-  rhidoc init --rehydrate              # refresh after a rhidoc-cli upgrade
-  rhidoc init --rehydrate --dry-run    # preview what would change
+  rhidoc update              # refresh after a rhidoc upgrade
+  rhidoc update --dry-run    # preview what would change
+
+### handbook
+
+Print a handbook doc shipped with the installed rhidoc to stdout. Read-only.
+
+```
+rhidoc handbook               # list the handbook docs with summaries
+rhidoc handbook <name>        # print one handbook doc
+```
+
+Side effects: none. Writes nothing — `init` and `update` are what hydrate
+the handbook into a workspace.
+
+Needs no workspace. Reads the installed rhidoc, not the workspace's hydrated copy, so
+it works in a repo that never ran `init`, and returns this version's text even where
+the handbook was hydrated by an older rhidoc.
+
+The workspace-directory and title placeholders are filled from the workspace when there
+is one, and default to `.rhidoc` and the current directory name when there is not.
+
+Covers the handbook docs only. Skills are served by `rhidoc ai-skill`; the AGENTS.md
+agent wiring is installed by `init`, not read ad hoc.
+
+When to use:
+  - You need the plain-language, drift, or conventions guidance in a repo with no
+    workspace — read it ad hoc instead of hydrating one.
+  - A workspace's handbook may be stale and you want the current text.
+
+Example:
+  rhidoc handbook                    # see what's available
+  rhidoc handbook plain-language     # the plain-language standard
+  rhidoc handbook drift              # why docs drift and the rules against it
 
 ### portable
 
@@ -692,9 +753,10 @@ Folded lint (insert and set-body only):
   Lint is a deterministic gate with no LLM involvement.  It checks:
     - word cap: body_text ≤ 200 words
     - line cap: body_text ≤ 40 lines
-    - doc00.02 banned patterns: future modals (will/shall), phase/version language,
+    - doc00.06 banned patterns: future modals (will/shall), phase/version language,
       deferral language (TODO/TBD), dated postscripts (as of YYYY-MM),
-      retrospective framing (we decided/chose), volatile snapshots (currently)
+      retrospective framing (we decided/chose), volatile snapshots (currently),
+      open-questions sections (open question), rename narration (renamed from/formerly)
     - duplicate body_text: the same body_text must not appear in another node
   Violations are printed to stderr; the file is left byte-unchanged.
   --no-lint on insert or set-body skips all checks.

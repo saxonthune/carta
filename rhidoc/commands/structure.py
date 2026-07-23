@@ -2,6 +2,7 @@
 import argparse
 import json
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..errors import RhidocError
@@ -9,7 +10,7 @@ from ..frontmatter import write_frontmatter
 from ..entries import resolve_arg, resolve_and_validate, list_numbered_entries, display_path
 from ..numbering import compute_insertion_prefix
 from ..docref import DocRef, EntryName
-from ..rewriter import rewrite_refs
+from ..rewriter import rewrite_refs, rewrite_relative_links, find_relative_link_breaks
 from ..planning import compute_all_moves, compute_rename_map, print_rename_map
 from ..workspace import collect_rewritable_files
 from ..regenerate_core import do_regenerate
@@ -21,29 +22,53 @@ from .. import bundle as bundle_mod
 # make
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class MakeArgs:
+    target: list[str]
+    group: bool
+    at: str | None
+    before: str | None
+    dry_run: bool
+    no_regen: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(
+            target=ns.target,
+            group=ns.group,
+            at=ns.at,
+            before=ns.before,
+            dry_run=ns.dry_run,
+            no_regen=ns.no_regen,
+        )
+
+
 def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Create a new doc or group entry."""
+    a = MakeArgs.from_namespace(args)
     # Validate positional/--at/--before combinations
-    if args.at is not None and len(args.target) == 2:
+    if a.at is not None and len(a.target) == 2:
         raise RhidocError("--at takes its position from the ref; do not also pass a parent")
 
-    if args.before is not None and args.at is not None:
+    if a.before is not None and a.at is not None:
         raise RhidocError("--before and --at are mutually exclusive")
 
-    if args.before is not None and len(args.target) == 2:
+    if a.before is not None and len(a.target) == 2:
         raise RhidocError("--before takes its position from the ref; do not also pass a parent")
 
-    if len(args.target) > 2:
+    if len(a.target) > 2:
         raise RhidocError("too many positional arguments; usage: rhidoc make [PARENT] SLUG")
 
+    shift_moves: list[tuple[Path, Path]] = []
+
     # Resolve addressing mode
-    if args.before is not None:
-        if len(args.target) != 1:
+    if a.before is not None:
+        if len(a.target) != 1:
             raise RhidocError("--before requires exactly one positional argument (SLUG)")
-        slug = args.target[0]
+        slug = a.target[0]
 
         try:
-            before_ref = DocRef.parse(args.before)
+            before_ref = DocRef.parse(a.before)
         except RhidocError as e:
             raise RhidocError(f"Invalid --before ref: {e}")
 
@@ -66,7 +91,6 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
         # Build shift-up move-set: bump every bundle at prefix >= target_prefix up by one
         bundles = bundle_mod.list_bundles(parent_path)
-        shift_moves: list[tuple[Path, Path]] = []
         for bndl in bundles:
             if bndl.prefix == 0:
                 continue
@@ -74,13 +98,14 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
                 continue
             all_members = ([bndl.root] if bndl.root else []) + list(bndl.attachments)
             for member in all_members:
-                tail = EntryName.parse(member.name).tail
-                new_name = f"{bndl.prefix + 1:02d}-{tail}"
+                parsed = EntryName.parse(member.name)
+                assert parsed is not None
+                new_name = f"{bndl.prefix + 1:02d}-{parsed.tail}"
                 shift_moves.append((member, parent_path / new_name))
 
         rename_map = compute_rename_map(shift_moves, rhidoc_root)
 
-        if args.dry_run:
+        if a.dry_run:
             print(f"Would insert at position {prefix:02d} in {parent_path.relative_to(rhidoc_root) if parent_path != rhidoc_root else '(root)'}")
             if shift_moves:
                 print(f"\n=== Shift-up moves ({len(shift_moves)}) ===")
@@ -88,9 +113,9 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
                     print(f"  {old.relative_to(rhidoc_root)} -> {new.relative_to(rhidoc_root)}")
             if rename_map:
                 print(f"\n=== Ref rename map ({len(rename_map)} entries) ===")
-                for old_ref, new_ref in sorted(rename_map.items()):
+                for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
                     print(f"  {old_ref} -> {new_ref}")
-            if args.group:
+            if a.group:
                 new_dir = parent_path / f"{prefix:02d}-{slug}"
                 print(f"\nWould create group: {new_dir.relative_to(rhidoc_root)}/")
                 print(f"  Index: {(new_dir / '00-index.md').relative_to(rhidoc_root)}")
@@ -111,13 +136,13 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
         # Fall through to the shared writer (prefix is already set)
         # Regeneration happens once at the end of the writer block
 
-    elif args.at is not None:
-        if len(args.target) != 1:
+    elif a.at is not None:
+        if len(a.target) != 1:
             raise RhidocError("--at requires exactly one positional argument (SLUG)")
-        slug = args.target[0]
+        slug = a.target[0]
 
         try:
-            at_ref = DocRef.parse(args.at)
+            at_ref = DocRef.parse(a.at)
         except RhidocError as e:
             raise RhidocError(f"Invalid --at ref: {e}")
 
@@ -137,24 +162,25 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
             raise RhidocError(f"Error: parent is not a directory: {parent_path}")
 
         entries = list_numbered_entries(parent_path)
-        occupied = {EntryName.parse(e.name).prefix for e in entries if EntryName.parse(e.name)}
+        parsed_entries = [EntryName.parse(e.name) for e in entries]
+        occupied = {p.prefix for p in parsed_entries if p is not None}
         if prefix in occupied:
             raise RhidocError(
                 f"Error: position {prefix:02d} is occupied in {parent_path.relative_to(rhidoc_root)}.\n"
                 f"Occupied positions: {sorted(occupied)}"
             )
 
-    elif len(args.target) == 1:
-        slug = args.target[0]
+    elif len(a.target) == 1:
+        slug = a.target[0]
         parent_path = rhidoc_root
         prefix = compute_insertion_prefix(list_numbered_entries(parent_path), None)
 
-    else:  # len(args.target) == 2
+    else:  # len(a.target) == 2
         try:
-            parent_path = resolve_arg(args.target[0], rhidoc_root).path
+            parent_path = resolve_arg(a.target[0], rhidoc_root).path
         except (FileNotFoundError, ValueError) as e:
-            raise RhidocError(f"Error resolving parent {args.target[0]!r}: {e}")
-        slug = args.target[1]
+            raise RhidocError(f"Error resolving parent {a.target[0]!r}: {e}")
+        slug = a.target[1]
         prefix = compute_insertion_prefix(list_numbered_entries(parent_path), None)
 
     # Slug guard: reject slug that already carries a NN- prefix
@@ -176,10 +202,10 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
     }
     body = f"\n# {title}\n"
 
-    if args.group:
+    if a.group:
         new_dir = parent_path / f"{prefix:02d}-{slug}"
 
-        if args.dry_run:
+        if a.dry_run:
             print(f"Would create group: {new_dir.relative_to(rhidoc_root)}/")
             print(f"  Index: {(new_dir / '00-index.md').relative_to(rhidoc_root)}")
             print(f"  Position: {prefix:02d}")
@@ -194,7 +220,7 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
     else:
         new_path = parent_path / f"{prefix:02d}-{slug}.md"
 
-        if args.dry_run:
+        if a.dry_run:
             print(f"Would create: {new_path.relative_to(rhidoc_root)}")
             print(f"  Position: {prefix:02d}")
             print("\n(dry-run: no files created)")
@@ -202,7 +228,7 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
         write_frontmatter(new_path, frontmatter, body)
 
-    if not args.no_regen:
+    if not a.no_regen:
         do_regenerate(rhidoc_root, _load_preamble(rhidoc_root.name))
 
     try:
@@ -211,7 +237,7 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
     except ValueError:
         print(f"Created: {new_path.relative_to(rhidoc_root)}")
 
-    if args.before is not None and shift_moves:
+    if a.before is not None and shift_moves:
         print(f"Shifted: {len(shift_moves)} sibling(s) renumbered")
 
 
@@ -276,10 +302,26 @@ def _find_orphaned_refs(
 # delete
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class DeleteArgs:
+    targets: list[str]
+    dry_run: bool
+    output_mapping: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(
+            targets=ns.targets,
+            dry_run=ns.dry_run,
+            output_mapping=ns.output_mapping,
+        )
+
+
 def cmd_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Delete entries with gap-closing."""
+    a = DeleteArgs.from_namespace(args)
     target_paths: list[Path] = []
-    for target in args.targets:
+    for target in a.targets:
         path = resolve_and_validate(target, rhidoc_root).path
         if (path.is_file()
                 and path.suffix != '.md'
@@ -316,8 +358,9 @@ def cmd_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
                 continue  # skip deleted bundles
             if bndl.prefix != next_prefix:
                 for member in all_members:
-                    old_slug = EntryName.parse(member.name).tail
-                    new_name = f"{next_prefix:02d}-{old_slug}"
+                    member_parsed = EntryName.parse(member.name)
+                    assert member_parsed is not None
+                    new_name = f"{next_prefix:02d}-{member_parsed.tail}"
                     all_moves.append((member, parent_dir / new_name))
             next_prefix += 1
 
@@ -334,7 +377,7 @@ def cmd_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
     orphaned = _find_orphaned_refs(md_files, deleted_refs)
     orphaned.sort(key=lambda t: (str(t[0]), t[2], t[1]))
 
-    if args.dry_run:
+    if a.dry_run:
         print("=== Planned deletions ===")
         for path in target_paths:
             kind = "directory" if path.is_dir() else "file"
@@ -352,15 +395,15 @@ def cmd_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
                 print(f"  {old.relative_to(rhidoc_root)} -> {new.relative_to(rhidoc_root)}")
         if rename_map:
             print(f"\n=== Ref rename map ({len(rename_map)} entries) ===")
-            for old_ref, new_ref in sorted(rename_map.items()):
+            for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
                 print(f"  {old_ref} -> {new_ref}")
         if orphaned:
             print(f"\n=== Orphaned ref warnings ({len(orphaned)}) ===")
             for fpath, line, ref in orphaned:
                 print(f"  {ref} in {display_path(fpath, rhidoc_root)}: {line[:80]}")
-        if args.output_mapping and rename_map:
-            print(json.dumps(rename_map, indent=2))
-        elif args.output_mapping:
+        if a.output_mapping and rename_map:
+            print(json.dumps({str(k): str(v) for k, v in rename_map.items()}, indent=2))
+        elif a.output_mapping:
             print("{}")
         print("\n(dry-run: no files modified)")
         return
@@ -391,7 +434,7 @@ def cmd_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
         print(f"Refs updated: {total_replacements} replacement(s) across {len(rewrite_results)} file(s)")
     if rename_map:
         print(f"Rename map ({len(rename_map)} entries):")
-        for old_ref, new_ref in sorted(rename_map.items()):
+        for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old_ref} -> {new_ref}")
 
     if orphaned:
@@ -399,9 +442,9 @@ def cmd_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
         for fpath, line, ref in orphaned:
             print(f"  {ref} in {display_path(fpath, rhidoc_root)}: {line[:80]}")
 
-    if args.output_mapping and rename_map:
-        print(json.dumps(rename_map, indent=2))
-    elif args.output_mapping:
+    if a.output_mapping and rename_map:
+        print(json.dumps({str(k): str(v) for k, v in rename_map.items()}, indent=2))
+    elif a.output_mapping:
         print("{}")
 
 
@@ -423,33 +466,62 @@ def _create_index_for_new_dir(dir_path: Path) -> None:
 # move
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class MoveArgs:
+    source: str
+    destination: str | None
+    at: str | None
+    before: str | None
+    mkdir: bool
+    rename: str | None
+    no_regen: bool
+    no_gap_close: bool
+    dry_run: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(
+            source=ns.source,
+            destination=ns.destination,
+            at=ns.at,
+            before=ns.before,
+            mkdir=ns.mkdir,
+            rename=ns.rename,
+            no_regen=ns.no_regen,
+            no_gap_close=ns.no_gap_close,
+            dry_run=ns.dry_run,
+        )
+
+
 def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Move/reorder entries."""
+    a = MoveArgs.from_namespace(args)
     # Combination guards
-    if args.at is not None and args.before is not None:
+    if a.at is not None and a.before is not None:
         raise RhidocError("--at and --before are mutually exclusive")
-    if (args.at is not None or args.before is not None) and args.destination is not None:
+    if (a.at is not None or a.before is not None) and a.destination is not None:
         raise RhidocError("--at/--before takes its destination from the ref; do not also pass a destination")
-    if args.at is None and args.before is None and args.destination is None:
+    if a.at is None and a.before is None and a.destination is None:
         raise RhidocError("provide a destination (append), or use --at/--before")
 
-    source_path = resolve_and_validate(args.source, rhidoc_root).path
+    source_path = resolve_and_validate(a.source, rhidoc_root).path
 
     if (source_path.is_file()
             and source_path.suffix != '.md'
             and EntryName.parse(source_path.name) is not None):
         raise RhidocError("cannot move an attachment directly; move its root md")
 
-    if args.rename and source_path.name == "00-index.md":
+    if a.rename and source_path.name == "00-index.md":
         raise RhidocError("Error: cannot rename 00-index.md files.")
 
     target_prefix: int | None = None
     strict = False
     mkdir_created = False
 
-    if args.at is not None or args.before is not None:
-        ref_str = args.at if args.at is not None else args.before
-        strict = (args.at is not None)
+    if a.at is not None or a.before is not None:
+        strict = (a.at is not None)
+        ref_str = a.at if strict else a.before
+        assert ref_str is not None
         try:
             ref = DocRef.parse(ref_str)
         except RhidocError as e:
@@ -475,11 +547,8 @@ def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
         # Strict (--at) occupancy precheck
         if strict:
             all_entries = list_numbered_entries(dest_path)
-            occupied = {
-                EntryName.parse(e.name).prefix
-                for e in all_entries
-                if EntryName.parse(e.name) is not None
-            }
+            all_entries_parsed = [EntryName.parse(e.name) for e in all_entries]
+            occupied = {p.prefix for p in all_entries_parsed if p is not None}
             # Same-dir: source slot is vacating — exclude it
             if source_path.parent.resolve() == dest_path.resolve():
                 _src_en = EntryName.parse(source_path.name)
@@ -493,15 +562,16 @@ def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
                 )
     else:
         # Append mode: positional destination
+        assert a.destination is not None
         try:
-            dest_path = resolve_arg(args.destination, rhidoc_root).path
+            dest_path = resolve_arg(a.destination, rhidoc_root).path
         except (FileNotFoundError, ValueError) as e:
-            if not args.mkdir:
-                raise RhidocError(f"Error resolving destination {args.destination!r}: {e}")
-            dest_path = (rhidoc_root / args.destination).resolve()
+            if not a.mkdir:
+                raise RhidocError(f"Error resolving destination {a.destination!r}: {e}")
+            dest_path = (rhidoc_root / a.destination).resolve()
 
         if not dest_path.exists():
-            if not args.mkdir:
+            if not a.mkdir:
                 raise RhidocError(f"Error: destination does not exist: {dest_path}")
             if not dest_path.parent.exists():
                 raise RhidocError(
@@ -511,7 +581,7 @@ def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
             mkdir_created = True
             dest_path.mkdir()
             _create_index_for_new_dir(dest_path)
-            if args.dry_run:
+            if a.dry_run:
                 print(f"Would create directory: {dest_path.relative_to(rhidoc_root)}")
 
         if dest_path.exists() and not dest_path.is_dir():
@@ -523,16 +593,22 @@ def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     try:
         moves = compute_all_moves(source_path, dest_path, target_prefix,
-                                  rename_slug=args.rename,
-                                  no_gap_close=args.no_gap_close,
+                                  rename_slug=a.rename,
+                                  no_gap_close=a.no_gap_close,
                                   strict=strict)
     except ValueError as e:
         raise RhidocError(f"Error computing moves: {e}")
 
     rename_map = compute_rename_map(moves, rhidoc_root)
 
-    if args.dry_run:
+    # Detect relative links before the move, while their targets still resolve. move
+    # renumbers and can change directories, so these are not auto-rewritten (unlike
+    # rename); the user is warned instead.
+    link_breaks = find_relative_link_breaks(collect_rewritable_files(rhidoc_root), moves)
+
+    if a.dry_run:
         print_rename_map(rename_map, moves)
+        _report_link_breaks(link_breaks, rhidoc_root, dry_run=True)
         print("\n(dry-run: no files modified)")
         if mkdir_created:
             shutil.rmtree(str(dest_path))
@@ -544,7 +620,7 @@ def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     rewrite_results = rewrite_refs(collect_rewritable_files(rhidoc_root), rename_map)
 
-    if not args.no_regen:
+    if not a.no_regen:
         do_regenerate(rhidoc_root, _load_preamble(rhidoc_root.name))
 
     print(f"Moved {len(moves)} item(s):")
@@ -553,24 +629,56 @@ def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
     total_replacements = sum(rewrite_results.values())
     print(f"Refs updated: {total_replacements} replacement(s) across {len(rewrite_results)} file(s)")
     print(f"Rename map ({len(rename_map)} entries):")
-    for old_ref, new_ref in sorted(rename_map.items()):
+    for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
         print(f"  {old_ref} -> {new_ref}")
+    _report_link_breaks(link_breaks, rhidoc_root, dry_run=False)
+
+
+def _report_link_breaks(
+    link_breaks: list[tuple[Path, str]], rhidoc_root: Path, dry_run: bool
+) -> None:
+    """Warn about relative links that move left (or would leave) pointing at an old name."""
+    if not link_breaks:
+        return
+    files_affected = {f for f, _ in link_breaks}
+    verb = "would still point" if dry_run else "still point"
+    print(f"\nWarning: {len(link_breaks)} relative link(s) in {len(files_affected)} file(s) "
+          f"{verb} at a moved file. Canonical docXX.YY refs were updated; relative links "
+          f"were not — fix these by hand or switch them to docXX.YY refs:")
+    for fpath, target in link_breaks:
+        print(f"  {display_path(fpath, rhidoc_root)}: {target}")
 
 
 # ---------------------------------------------------------------------------
 # rename
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class RenameArgs:
+    target: str
+    new_slug: str
+    no_regen: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(
+            target=ns.target,
+            new_slug=ns.new_slug,
+            no_regen=ns.no_regen,
+        )
+
+
 def cmd_rename(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Rename a directory or file slug without changing position."""
-    target_path = resolve_and_validate(args.target, rhidoc_root).path
+    a = RenameArgs.from_namespace(args)
+    target_path = resolve_and_validate(a.target, rhidoc_root).path
 
     _target_en = EntryName.parse(target_path.name)
     if _target_en is None:
         raise RhidocError(f"Error: target has no numeric prefix: {target_path.name}")
     prefix = _target_en.prefix
 
-    new_slug = args.new_slug
+    new_slug = a.new_slug
     _new_en = EntryName.parse(new_slug)
     if _new_en is not None:
         new_slug = _new_en.tail
@@ -581,7 +689,7 @@ def cmd_rename(args: argparse.Namespace, rhidoc_root: Path) -> None:
         if new_path.exists() and new_path.resolve() != target_path.resolve():
             raise RhidocError(f"Error: destination already exists: {new_path}")
         shutil.move(str(target_path), str(new_path))
-        if not args.no_regen:
+        if not a.no_regen:
             do_regenerate(rhidoc_root, _load_preamble(rhidoc_root.name))
         print(f"Renamed: {target_path.name} -> {new_path.name}")
         return
@@ -604,7 +712,9 @@ def cmd_rename(args: argparse.Namespace, rhidoc_root: Path) -> None:
     if bndl and bndl.slug:
         old_slug = bndl.slug
         for att in bndl.attachments:
-            att_slug = EntryName.parse(att.name).tail
+            att_parsed = EntryName.parse(att.name)
+            assert att_parsed is not None
+            att_slug = att_parsed.tail
             if att_slug.startswith(old_slug + "."):
                 new_att_slug = stem_slug + att_slug[len(old_slug):]
                 renames.append((att, att.parent / f"{prefix:02d}-{new_att_slug}"))
@@ -614,10 +724,17 @@ def cmd_rename(args: argparse.Namespace, rhidoc_root: Path) -> None:
     for old, new in renames:
         shutil.move(str(old), str(new))
 
-    if not args.no_regen:
+    # A rename keeps the file in place, so relative links break only in their basename —
+    # a safe swap. Canonical docXX.YY refs are unaffected (the coordinate does not change).
+    link_results = rewrite_relative_links(collect_rewritable_files(rhidoc_root), renames)
+
+    if not a.no_regen:
         do_regenerate(rhidoc_root, _load_preamble(rhidoc_root.name))
 
     for old, new in renames:
         print(f"Renamed: {old.name} -> {new.name}")
     for att in unchanged:
         print(f"Left unchanged (same prefix, different slug): {att.name}")
+    if link_results:
+        total = sum(link_results.values())
+        print(f"Relative links rewritten: {total} in {len(link_results)} file(s)")

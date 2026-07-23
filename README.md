@@ -18,8 +18,8 @@ Here's a snippet of rhidoc's own docs structure:
 ```
 $ rhidoc tree
 .rhidoc
-├── 00-codex -- Codex
-│   ├── 00-index -- Codex
+├── 00-handbook -- Handbook
+│   ├── 00-index -- Handbook
 │   ├── 01-about -- About This Workspace
 │   ├── 02-maintenance -- Maintenance
 │   ├── 03-conventions -- Conventions

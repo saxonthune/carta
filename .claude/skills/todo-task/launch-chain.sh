@@ -2,13 +2,14 @@
 set -euo pipefail
 
 # Launch execute-chain.sh in the background with log capture.
-# Usage: launch-chain.sh <chain-name> <plan1> <plan2> [plan3] ... [--after <slug>]
+# Usage: launch-chain.sh <chain-name> <plan1> <plan2> [plan3] ... [--after <slug>] [--watch]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 AFTER=""
 AFTER_NEXT=false
+WATCH=false
 POSITIONAL=()
 
 for arg in "$@"; do
@@ -19,12 +20,13 @@ for arg in "$@"; do
   fi
   case "$arg" in
     --after) AFTER_NEXT=true ;;
+    --watch) WATCH=true ;;
     *)       POSITIONAL+=("$arg") ;;
   esac
 done
 
 if [[ ${#POSITIONAL[@]} -lt 3 ]]; then
-  echo "Usage: launch-chain.sh <chain-name> <plan1> <plan2> [plan3] ... [--after <slug>]"
+  echo "Usage: launch-chain.sh <chain-name> <plan1> <plan2> [plan3] ... [--after <slug>] [--watch]"
   exit 1
 fi
 
@@ -41,7 +43,14 @@ fi
 # Fast-fail on preconditions before backgrounding.
 # Runs execute-chain.sh --validate-only synchronously; if it exits non-zero,
 # the error is printed to stderr and we bail without creating a log.
-if ! bash "${SCRIPT_DIR}/execute-chain.sh" "$@" --validate-only; then
+# Pass POSITIONAL (not raw "$@") so --watch, which execute-chain.sh doesn't
+# recognize, is never forwarded to it.
+if [[ -n "$AFTER" ]]; then
+  VALIDATE_CMD=("${POSITIONAL[@]}" --after "${AFTER}" --validate-only)
+else
+  VALIDATE_CMD=("${POSITIONAL[@]}" --validate-only)
+fi
+if ! bash "${SCRIPT_DIR}/execute-chain.sh" "${VALIDATE_CMD[@]}"; then
   echo ""
   echo "Validation failed. Not launching."
   exit 1
@@ -58,3 +67,9 @@ fi
 
 echo "Chain launched: ${CHAIN_NAME} (pid $!)"
 echo "Log: tail -f ${LOG}"
+
+if [[ "$WATCH" == "true" ]]; then
+  echo ""
+  echo "Watching until ${CHAIN_NAME} reaches a terminal state..."
+  exec bash "${SCRIPT_DIR}/wait.sh" "${CHAIN_NAME}"
+fi

@@ -41,6 +41,8 @@ def ref_to_path(ref: str, root: "Path") -> "Path":
 def path_to_ref(path: "Path", root: "Path") -> str:
     return str(DocRef.from_path(path, root))
 from rhidoc.workspace import find_workspace, MARKER
+from rhidoc.templates import TEMPLATES_VERSION
+from rhidoc.__version__ import __version__
 
 from helpers import normalize_output
 
@@ -276,7 +278,7 @@ def test_init_custom_dir(run_cli, tmp_path):
 
     docs_dir = tmp_path / ".docs"
     assert (docs_dir / "MANIFEST.md").exists()
-    assert (docs_dir / "00-codex" / "00-index.md").exists()
+    assert (docs_dir / "00-handbook" / "00-index.md").exists()
 
     manifest = (docs_dir / "MANIFEST.md").read_text(encoding="utf-8")
     assert manifest.startswith("# .docs/ Manifest"), f"MANIFEST header should use .docs/: {manifest[:50]}"
@@ -293,85 +295,322 @@ def test_init_default_dir(run_cli, tmp_path):
     assert marker_data["root"] == ".rhidoc/"
 
 
-def test_init_without_rehydrate_refuses_existing(run_cli, tmp_path, snapshot):
-    """rhidoc init without --rehydrate refuses when .rhidoc.json already exists and hints at --rehydrate."""
+def test_init_refuses_existing(run_cli, tmp_path, snapshot):
+    """rhidoc init refuses when .rhidoc.json already exists and points at `update`."""
     (tmp_path / MARKER).write_text("{}")
     code, out, err = run_cli("init", cwd=tmp_path)
     assert code == 0
     assert normalize_output(out, tmp_path) == snapshot
 
 
-def test_init_rehydrate_updates_stale_template(run_cli, tmp_path):
-    """rhidoc init --rehydrate overwrites a stale codex template."""
+def test_init_records_installed_files(run_cli, tmp_path):
+    """init records every file it wrote, so update knows what it owns."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
-    stale_path = tmp_path / ".rhidoc" / "00-codex" / "01-about.md"
+    config = json.loads((tmp_path / MARKER).read_text(encoding="utf-8"))
+    files = config["installed"]["files"]
+    assert ".rhidoc/00-handbook/04-plain-language.md" in files
+    assert ".rhidoc/AGENTS.md" in files
+    assert ".claude/skills/rhidoc-cli/SKILL.md" in files
+    assert config["installed"]["templatesVersion"] == TEMPLATES_VERSION
+    # The user's slot is scaffolded but never claimed.
+    assert not any("07-user-handbook" in f for f in files)
+
+
+def test_version_reports_cli_and_templates(run_cli, tmp_path):
+    """`version` prints the CLI version and the shipped templates version."""
+    code, out, _ = run_cli("version", cwd=tmp_path)
+    assert code == 0
+    assert f"rhidoc {__version__}" in out
+    assert f"templates {TEMPLATES_VERSION}" in out
+
+
+def _build_group_with_sidecar_fixture(dest: Path) -> Path:
+    """A section with three leaves followed by a group directory holding a sidecar.
+
+    This is the shape that made `move` resolve a directory by its post-move name:
+    a move that gap-closes or relocates the group must derive the sidecar's new ref
+    without touching the not-yet-existing new directory.
+    """
+    rhidoc = dest / ".rhidoc"
+    (dest / MARKER).write_text(
+        json.dumps({"root": ".rhidoc/", "title": "T"}), encoding="utf-8")
+    _write(rhidoc / "02-design/00-index.md",
+           _fm("Design", summary="Design index.", tags=["index"]), "# Design\n")
+    _write(rhidoc / "02-design/01-alpha.md", _fm("Alpha", summary="A.", tags=["x"]))
+    _write(rhidoc / "02-design/02-beta.md", _fm("Beta", summary="B.", tags=["x"]))
+    _write(rhidoc / "02-design/03-gamma.md", _fm("Gamma", summary="G.", tags=["x"]))
+    _write(rhidoc / "02-design/04-dataflow/00-index.md",
+           _fm("Dataflow", summary="Dataflow index.", tags=["index"]), "# Dataflow\n")
+    _write(rhidoc / "02-design/04-dataflow/01-shell.md", _fm("Shell", summary="S.", tags=["x"]))
+    (rhidoc / "02-design/04-dataflow/01-shell.statechart.json").write_text(
+        "{}\n", encoding="utf-8")
+    result = _run_rhidoc(rhidoc, "regenerate")
+    assert result.returncode == 0, result.stderr
+    return rhidoc
+
+
+def test_move_gap_close_group_with_sidecar(tmp_path):
+    """Moving a leaf into a later group gap-closes that group (04->03). Deriving the
+    sidecar's new ref must not iterdir the group's not-yet-existing new name."""
+    rhidoc = _build_group_with_sidecar_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "move", "doc02.01", "02-design/04-dataflow")
+    assert result.returncode == 0, result.stderr
+    assert "Errno 2" not in result.stderr
+    # Group gap-closed 04 -> 03; the sidecar rode along.
+    assert (rhidoc / "02-design/03-dataflow/01-shell.statechart.json").exists()
+    # The moved leaf landed inside the group at its appended slot.
+    assert (rhidoc / "02-design/03-dataflow/02-alpha.md").exists()
+
+
+def test_move_at_directory_with_sidecar(tmp_path):
+    """`move --at` of a group with a sidecar to a free slot must not fail resolving
+    the group's post-move name."""
+    rhidoc = _build_group_with_sidecar_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "move", "doc02.04", "--at", "doc02.06")
+    assert result.returncode == 0, result.stderr
+    assert "Errno 2" not in result.stderr
+    assert (rhidoc / "02-design/06-dataflow/01-shell.statechart.json").exists()
+
+
+def test_move_gap_close_group_with_sidecar_dry_run(tmp_path):
+    """The failure was at plan time, so --dry-run reproduced it too — guard it."""
+    rhidoc = _build_group_with_sidecar_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "move", "doc02.01", "02-design/04-dataflow", "--dry-run")
+    assert result.returncode == 0, result.stderr
+    assert "Errno 2" not in result.stderr
+    # Nothing moved.
+    assert (rhidoc / "02-design/04-dataflow/01-shell.statechart.json").exists()
+    assert (rhidoc / "02-design/01-alpha.md").exists()
+
+
+def _build_relative_link_fixture(tmp_path: Path) -> Path:
+    """Two sibling docs where one holds a relative markdown link to the other."""
+    rhidoc = tmp_path / ".rhidoc"
+    (tmp_path / MARKER).write_text(
+        json.dumps({"root": ".rhidoc/", "title": "T"}), encoding="utf-8")
+    _write(rhidoc / "02-design/00-index.md",
+           _fm("Design", summary="Design index.", tags=["index"]), "# Design\n")
+    _write(rhidoc / "02-design/01-alpha.md", _fm("Alpha", summary="a", tags=["x"]),
+           "# Alpha\n\nSee [Beta](02-beta.md) for the rest.\n")
+    _write(rhidoc / "02-design/02-beta.md", _fm("Beta", summary="b", tags=["x"]), "# Beta\n")
+    result = _run_rhidoc(rhidoc, "regenerate")
+    assert result.returncode == 0, result.stderr
+    return rhidoc
+
+
+def test_rename_rewrites_relative_links(tmp_path):
+    """rename swaps the basename of relative links pointing at the renamed file."""
+    rhidoc = _build_relative_link_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "rename", "doc02.02", "gamma")
+    assert result.returncode == 0, result.stderr
+    assert "Relative links rewritten: 1 in 1 file(s)" in result.stdout
+    alpha = (rhidoc / "02-design/01-alpha.md").read_text(encoding="utf-8")
+    assert "](02-gamma.md)" in alpha
+    assert "02-beta.md" not in alpha
+
+
+def test_move_warns_but_does_not_rewrite_relative_links(tmp_path):
+    """move renumbers the target's filename; it warns about the now-stale relative
+    link rather than rewriting it."""
+    rhidoc = _build_relative_link_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "move", "doc02.02", "--at", "doc02.08")
+    assert result.returncode == 0, result.stderr
+    assert "Warning:" in result.stdout
+    assert "1 relative link(s) in 1 file(s)" in result.stdout
+    # The link is left as-is (only canonical refs are updated on move).
+    alpha = (rhidoc / "02-design/01-alpha.md").read_text(encoding="utf-8")
+    assert "](02-beta.md)" in alpha
+
+
+def test_move_dry_run_warns_about_relative_links(tmp_path):
+    """The warning also fires on --dry-run, before anything is moved."""
+    rhidoc = _build_relative_link_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "move", "doc02.02", "--at", "doc02.08", "--dry-run")
+    assert result.returncode == 0, result.stderr
+    assert "would still point" in result.stdout
+    assert (rhidoc / "02-design/02-beta.md").exists()
+
+
+def test_rewrite_dry_run_shows_matched_lines(tmp_path):
+    """rewrite --dry-run prints each matched line, so a ref used as an example is
+    visible before it gets rewritten like a real reference."""
+    rhidoc = tmp_path / ".rhidoc"
+    (tmp_path / MARKER).write_text(
+        json.dumps({"root": ".rhidoc/", "title": "T"}), encoding="utf-8")
+    _write(rhidoc / "01-strategy/00-index.md",
+           _fm("Strategy", summary="Strategy index.", tags=["index"]), "# Strategy\n")
+    _write(rhidoc / "01-strategy/01-real.md", _fm("Real", summary="r", tags=["x"]),
+           "# Real\n\nA real pointer to doc01.02 lives here.\n")
+    _write(rhidoc / "01-strategy/02-guide.md", _fm("Guide", summary="g", tags=["x"]),
+           "# Guide\n\nWrite a doc ref like doc01.02 as an example.\n")
+    result = _run_rhidoc(rhidoc, "regenerate")
+    assert result.returncode == 0, result.stderr
+
+    result = _run_rhidoc(rhidoc, "rewrite", "doc01.02=doc01.09", "--dry-run")
+    assert result.returncode == 0, result.stderr
+    # Each match is shown as a line with its number and the ref, not just a count.
+    assert "as an example" in result.stdout
+    assert "real pointer" in result.stdout
+    assert "(doc01.02)" in result.stdout
+    # It is a plan only — nothing was rewritten.
+    assert "doc01.09" not in (rhidoc / "01-strategy/02-guide.md").read_text(encoding="utf-8")
+
+
+def test_init_creates_user_slot(run_cli, tmp_path):
+    """doc00.07 is scaffolded empty for the user's own doctrine."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    assert (tmp_path / ".rhidoc" / "00-handbook" / "07-user-handbook" / "00-index.md").exists()
+
+
+def test_init_does_not_claim_preexisting_file(run_cli, tmp_path):
+    """A file already at one of rhidoc's paths is left alone and never recorded as ours."""
+    skill = tmp_path / ".claude" / "skills" / "docs-development" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("MY OWN SKILL", encoding="utf-8")
+
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    config = json.loads((tmp_path / MARKER).read_text(encoding="utf-8"))
+    assert ".claude/skills/docs-development/SKILL.md" not in config["installed"]["files"]
+    assert skill.read_text(encoding="utf-8") == "MY OWN SKILL"
+
+
+def test_update_never_overwrites_unmanaged_file(run_cli, tmp_path):
+    """The bug that motivated the record: init skipped it, so update must not stomp it."""
+    skill = tmp_path / ".claude" / "skills" / "docs-development" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("MY OWN SKILL", encoding="utf-8")
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
+    assert skill.read_text(encoding="utf-8") == "MY OWN SKILL"
+    assert "Unmanaged" in out
+
+
+def test_update_refreshes_stale_template(run_cli, tmp_path):
+    """update overwrites a handbook doc it installed."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    stale_path = tmp_path / ".rhidoc" / "00-handbook" / "01-about.md"
     stale_path.write_text("stale content", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
-    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
     assert stale_path.read_text(encoding="utf-8") != "stale content"
 
 
-def test_init_rehydrate_dry_run(run_cli, tmp_path, snapshot):
-    """rhidoc init --rehydrate --dry-run shows plan without writing."""
+def test_update_leaves_user_doc_at_free_prefix_alone(run_cli, tmp_path):
+    """A doc rhidoc never installed survives, whatever prefix it occupies.
+
+    The old prefix-glob deleted these; ownership now comes from the record.
+    """
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
-    stale_path = tmp_path / ".rhidoc" / "00-codex" / "01-about.md"
+    mine = tmp_path / ".rhidoc" / "00-handbook" / "04-my-house-style.md"
+    mine.write_text("my own doc", encoding="utf-8")
+
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
+    assert mine.exists(), "update deleted a doc rhidoc never installed"
+    assert mine.read_text(encoding="utf-8") == "my own doc"
+
+
+def test_update_removes_file_no_longer_shipped(run_cli, tmp_path):
+    """A path rhidoc installed but no longer ships is removed — how renames clean up."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    obsolete = tmp_path / ".rhidoc" / "00-handbook" / "09-obsolete.md"
+    obsolete.write_text("shipped by an older rhidoc", encoding="utf-8")
+    marker_path = tmp_path / MARKER
+    config = json.loads(marker_path.read_text(encoding="utf-8"))
+    config["installed"]["files"].append(".rhidoc/00-handbook/09-obsolete.md")
+    marker_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
+    assert not obsolete.exists()
+    assert "Removed" in out
+    config_after = json.loads(marker_path.read_text(encoding="utf-8"))
+    assert ".rhidoc/00-handbook/09-obsolete.md" not in config_after["installed"]["files"]
+
+
+def test_update_legacy_reports_leftover_without_deleting(run_cli, tmp_path):
+    """A pre-record workspace adopts its files and is told about leftovers, not robbed of them."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    legacy_section = tmp_path / ".rhidoc" / "00-codex"
+    legacy_section.mkdir()
+    (legacy_section / "01-about.md").write_text("old section", encoding="utf-8")
+    marker_path = tmp_path / MARKER
+    config = json.loads(marker_path.read_text(encoding="utf-8"))
+    del config["installed"]
+    marker_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
+    assert legacy_section.exists(), "legacy leftovers must never be deleted on a guess"
+    assert "Leftover" in out
+    assert "00-codex" in out
+    # ...and the record now exists, so the next update is precise.
+    assert "installed" in json.loads(marker_path.read_text(encoding="utf-8"))
+
+
+def test_update_dry_run(run_cli, tmp_path, snapshot):
+    """rhidoc update --dry-run shows plan without writing."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    stale_path = tmp_path / ".rhidoc" / "00-handbook" / "01-about.md"
     stale_path.write_text("stale content", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", "--dry-run", cwd=tmp_path)
+    code, out, err = run_cli("update", "--dry-run", cwd=tmp_path)
     assert code == 0, f"dry-run failed:\n{err}\n{out}"
     assert normalize_output(out, tmp_path) == snapshot
     assert stale_path.read_text(encoding="utf-8") == "stale content"
 
 
-def test_init_rehydrate_preserves_workspace_json(run_cli, tmp_path):
-    """rhidoc init --rehydrate does not overwrite workspace title in marker."""
+def test_update_preserves_workspace_json(run_cli, tmp_path):
+    """update does not overwrite workspace title in marker."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
     marker_path = tmp_path / MARKER
     config = json.loads(marker_path.read_text(encoding="utf-8"))
     config["title"] = "My Custom Title"
     marker_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
-    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
     config_after = json.loads(marker_path.read_text(encoding="utf-8"))
     assert config_after["title"] == "My Custom Title"
 
 
-def test_init_rehydrate_without_workspace(run_cli, tmp_path, snapshot):
-    """rhidoc init --rehydrate in an empty dir exits non-zero with helpful error."""
-    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
+def test_update_without_workspace(run_cli, tmp_path, snapshot):
+    """rhidoc update in an empty dir exits non-zero with a helpful error."""
+    code, out, err = run_cli("update", cwd=tmp_path)
     assert code != 0
     combined = out + err
     assert normalize_output(combined, tmp_path) == snapshot
 
 
-def test_init_rehydrate_refreshes_skill(run_cli, tmp_path):
-    """rhidoc init --rehydrate overwrites a stale rhidoc-cli SKILL.md."""
+def test_update_refreshes_skill(run_cli, tmp_path):
+    """update overwrites a stale rhidoc-cli SKILL.md that it installed."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
     skill_path = tmp_path / ".claude" / "skills" / "rhidoc-cli" / "SKILL.md"
     skill_path.write_text("stale skill content", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
-    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
     assert skill_path.read_text(encoding="utf-8") != "stale skill content"
 
 
-def test_init_rehydrate_check_passes_when_current(run_cli, tmp_path):
-    """rhidoc init --rehydrate --check exits 0 when hydrated files are current."""
+def test_update_check_passes_when_current(run_cli, tmp_path):
+    """rhidoc update --check exits 0 when hydrated files are current."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
-    code, out, err = run_cli("init", "--rehydrate", "--check", cwd=tmp_path)
+    code, out, err = run_cli("update", "--check", cwd=tmp_path)
     assert code == 0, f"expected pass:\n{out}\n{err}"
     assert "current" in out
 
 
-def test_init_rehydrate_check_fails_on_drift(run_cli, tmp_path):
-    """rhidoc init --rehydrate --check exits non-zero on drift without writing."""
+def test_update_check_fails_on_drift(run_cli, tmp_path):
+    """rhidoc update --check exits non-zero on drift without writing."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
     agents = tmp_path / ".rhidoc" / "AGENTS.md"
     agents.write_text(agents.read_text(encoding="utf-8") + "\nstale\n", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", "--check", cwd=tmp_path)
+    code, out, err = run_cli("update", "--check", cwd=tmp_path)
     assert code == 1, f"expected failure:\n{out}\n{err}"
     assert "AGENTS.md" in out
     assert "stale" in agents.read_text(encoding="utf-8")  # --check must not write
@@ -433,7 +672,7 @@ class TestRewriteRefs(unittest.TestCase):
             "Ref: doc02.06.01\n",
             encoding="utf-8",
         )
-        rewrite_refs([md], {"doc02.06": "doc03.01"})
+        rewrite_refs([md], {DocRef.parse("02.06"): DocRef.parse("03.01")})
         lines = md.read_text(encoding="utf-8").splitlines()
         self.assertIn("doc03.01", lines[0], "Line 1 should be updated")
         self.assertNotIn("doc03.01", lines[1], "URL line should NOT be updated")
@@ -445,7 +684,7 @@ class TestRewriteRefs(unittest.TestCase):
         md = self.tmp / "test2.md"
         md.write_text("doc03.01 and doc03.01.01\n", encoding="utf-8")
         # Only rename doc03.01, not doc03.01.01
-        rewrite_refs([md], {"doc03.01": "doc04.01"})
+        rewrite_refs([md], {DocRef.parse("03.01"): DocRef.parse("04.01")})
         result = md.read_text(encoding="utf-8")
         self.assertIn("doc04.01", result)
         self.assertIn("doc03.01.01", result, "doc03.01.01 should remain unchanged")
@@ -455,7 +694,7 @@ class TestRewriteRefs(unittest.TestCase):
         md = self.tmp / "unchanged.md"
         original = "No matching refs here.\n"
         md.write_text(original, encoding="utf-8")
-        results = rewrite_refs([md], {"doc99.99": "doc00.01"})
+        results = rewrite_refs([md], {DocRef.parse("99.99"): DocRef.parse("00.01")})
         self.assertNotIn(md, results)
         self.assertEqual(md.read_text(encoding="utf-8"), original)
 
@@ -481,6 +720,7 @@ class TestComputeRenameMap(unittest.TestCase):
     def test_gap_closing(self):
         """After removing 01-foo, 02-bar should become 01-bar."""
         from rhidoc.planning import compute_rename_map
+        from rhidoc.docref import DocRef
         old_foo = self.tmp / "01-a" / "01-foo.md"
         new_foo = self.tmp / "02-b" / "01-foo.md"
         old_bar = self.tmp / "01-a" / "02-bar.md"
@@ -490,9 +730,9 @@ class TestComputeRenameMap(unittest.TestCase):
         rename_map = compute_rename_map(moves, self.tmp)
 
         # doc01.01 -> somewhere (foo moved)
-        self.assertIn("doc01.01", rename_map)
+        self.assertIn(DocRef.parse("01.01"), rename_map)
         # doc01.02 -> doc01.01 (gap closed)
-        self.assertEqual(rename_map.get("doc01.02"), "doc01.01")
+        self.assertEqual(rename_map.get(DocRef.parse("01.02")), DocRef.parse("01.01"))
 
 
 class TestMovetoDryRun(unittest.TestCase):
@@ -3018,6 +3258,108 @@ class TestHoistBefore(unittest.TestCase):
         self.assertEqual(result.returncode, 0, f"hoist without --before failed:\n{result.stderr}")
         design_dir = self.rhidoc / "02-product-design"
         self.assertFalse((design_dir / "08-decisions").exists())
+
+
+class TestHandbook(unittest.TestCase):
+    """Tests for `rhidoc handbook` and the template registry."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.cwd = Path(self.tmpdir.name).resolve()
+        self._prev_cwd = Path.cwd()
+        os.chdir(self.cwd)
+
+    def tearDown(self):
+        os.chdir(self._prev_cwd)
+        self.tmpdir.cleanup()
+
+    def _run(self, *args: str) -> types.SimpleNamespace:
+        """Run the CLI with no --workspace, from a directory that has no workspace."""
+        stdout_buf, stderr_buf = io.StringIO(), io.StringIO()
+        try:
+            with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+                code = cli_main(list(args))
+        except SystemExit as e:
+            code = int(e.code) if e.code is not None else 0
+        return types.SimpleNamespace(
+            returncode=code, stdout=stdout_buf.getvalue(), stderr=stderr_buf.getvalue()
+        )
+
+    def test_registry_matches_shipped_files(self):
+        """Every registered template exists, and every shipped .md is registered."""
+        from rhidoc.templates import TEMPLATES, _DIR
+
+        for tmpl in TEMPLATES.values():
+            self.assertTrue(tmpl.path.is_file(), f"registered but missing: {tmpl.filename}")
+
+        registered = {t.filename for t in TEMPLATES.values()}
+        on_disk = {p.name for p in _DIR.glob("*.md")}
+        self.assertEqual(on_disk - registered, set(), "shipped template not in registry")
+
+    def test_every_listed_template_has_a_summary(self):
+        from rhidoc.templates import listed
+
+        for tmpl in listed():
+            self.assertTrue(tmpl.summary.strip(), f"{tmpl.name} has no summary")
+
+    def test_summary_comes_from_frontmatter(self):
+        from rhidoc.templates import TEMPLATES
+
+        self.assertIn("plain-language standard", TEMPLATES["plain-language"].summary)
+        self.assertIn("health diagnostics", TEMPLATES["rhidoc-setup"].summary)
+
+    def test_list_without_workspace(self):
+        result = self._run("handbook")
+        self.assertEqual(result.returncode, 0, f"handbook failed:\n{result.stderr}")
+        self.assertIn("plain-language", result.stdout)
+        self.assertIn("[handbook]", result.stdout)
+
+    def test_print_without_workspace(self):
+        result = self._run("handbook", "plain-language")
+        self.assertEqual(result.returncode, 0, f"handbook failed:\n{result.stderr}")
+        self.assertIn("# Plain Language", result.stdout)
+        self.assertIn("ISO 24495-1", result.stdout)
+
+    def test_placeholders_default_without_workspace(self):
+        result = self._run("handbook", "conventions")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn(".rhidoc/", result.stdout)
+        self.assertNotIn("{{dir_name}}", result.stdout)
+
+    def test_placeholders_follow_workspace_dirname(self):
+        self._run("init", "--dir", "docs-ws")
+        result = self._run("handbook", "conventions")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("docs-ws/", result.stdout)
+        self.assertNotIn("{{dir_name}}", result.stdout)
+
+    def test_skills_and_wiring_are_not_offered(self):
+        """Scope is the handbook: skills are served by `ai-skill`, wiring is not reading material."""
+        for name in ("agents", "docs-development", "rhidoc-cli", "index"):
+            result = self._run("handbook", name)
+            self.assertNotEqual(result.returncode, 0, f"{name} should not be a handbook doc")
+
+    def test_reads_installed_copy_not_stale_workspace_copy(self):
+        """The whole point: a stale hydrated handbook does not affect what `handbook` prints."""
+        self._run("init")
+        stale = self.cwd / ".rhidoc" / "00-handbook" / "04-plain-language.md"
+        stale.write_text("# Stale local copy\n", encoding="utf-8")
+
+        result = self._run("handbook", "plain-language")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("ISO 24495-1", result.stdout)
+        self.assertNotIn("Stale local copy", result.stdout)
+
+    def test_unknown_name_is_rejected(self):
+        result = self._run("handbook", "no-such-doc")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("invalid choice", result.stderr)
+
+    def test_writes_nothing(self):
+        before = sorted(p.name for p in self.cwd.iterdir())
+        self._run("handbook", "plain-language")
+        self._run("handbook")
+        self.assertEqual(sorted(p.name for p in self.cwd.iterdir()), before)
 
 
 if __name__ == "__main__":

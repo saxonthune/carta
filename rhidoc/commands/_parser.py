@@ -3,14 +3,13 @@ import argparse
 import sys
 from pathlib import Path
 
-from ..__version__ import __version__
 from ..errors import RhidocError
 from ..workspace import find_workspace
 from ..ai_skill import cmd_ai_skill
 from .structure import cmd_make, cmd_delete, cmd_move, cmd_rename
 from .transform import cmd_punch, cmd_hoist, cmd_copy
 from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach, cmd_ls, cmd_bundle, cmd_orphans
-from .setup import cmd_init, cmd_portable, cmd_init_rehydrate
+from .setup import cmd_init, cmd_portable, cmd_update, cmd_handbook, cmd_version, handbook_listing
 from .mdapi import cmd_mdapi
 
 
@@ -25,7 +24,8 @@ def build_parser() -> argparse.ArgumentParser:
         prog="rhidoc",
         description="Workspace tools for managing .rhidoc/ documentation.",
     )
-    parser.add_argument("--version", action="version", version=f"rhidoc {__version__}")
+    parser.add_argument("--version", action="store_true",
+                        help="Print the rhidoc CLI and templates versions")
     parser.add_argument("--workspace", "-w", type=Path, default=None,
                         help="Path to workspace directory. Default: auto-detect.")
     parser.add_argument("--help-ai", action="store_true",
@@ -115,7 +115,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Copy file into workspace",
         epilog=(
             "Examples:\n"
-            "  rhidoc copy path/to/file.md 00-codex\n"
+            "  rhidoc copy path/to/file.md 00-handbook\n"
             "  rhidoc copy path/to/file.md --at doc00.05\n"
             "  rhidoc copy path/to/file.md --before doc00.03\n"
             "  rhidoc copy path/to/file.md --at doc00.05 --rename my-slug"
@@ -164,17 +164,44 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Name of the workspace directory. Default: .rhidoc")
     p_init.add_argument("--portable", action="store_true",
                         help="Dump editable Python scripts into workspace for pip-free usage.")
-    p_init.add_argument("--rehydrate", action="store_true",
-                        help="Refresh codex templates and skill files in an existing workspace. "
-                             "Preserves workspace.json and user-authored docs.")
-    p_init.add_argument("--dry-run", action="store_true",
-                        help="With --rehydrate, show what would be updated without writing.")
-    p_init.add_argument("--check", action="store_true",
-                        help="With --rehydrate, report drift without writing and exit non-zero "
-                             "if any hydrated file is stale. For CI gates.")
+
+    # update
+    p_update = subparsers.add_parser(
+        "update",
+        help="Refresh handbook docs and skills from the installed rhidoc version",
+        description="Reconcile the files rhidoc installed against what this version ships. "
+                    "Removes what rhidoc installed but no longer ships, refreshes what "
+                    "changed, and never touches a file rhidoc did not install. Leaves "
+                    "workspace.json settings and user-authored docs alone.",
+    )
+    p_update.add_argument("--dry-run", action="store_true",
+                          help="Show what would change without writing.")
+    p_update.add_argument("--check", action="store_true",
+                          help="Report drift without writing and exit non-zero if any hydrated "
+                               "file is stale. For CI gates.")
 
     # portable
     p_portable = subparsers.add_parser("portable", help="Dump editable scripts into workspace")
+
+    # version
+    subparsers.add_parser("version", help="Print the rhidoc CLI and templates versions")
+
+    # handbook
+    from ..templates import listed as _listed_handbook
+    p_handbook = subparsers.add_parser(
+        "handbook",
+        help="Print a handbook doc (conventions, plain language, drift, ...) to stdout",
+        description="Print the handbook docs that `init` hydrates, read from the installed "
+                    "rhidoc rather than from any workspace copy. Works in a repo with no "
+                    "workspace, and reflects this rhidoc version even where a workspace "
+                    "was hydrated by an older one.",
+        epilog=handbook_listing(),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p_handbook.add_argument("name", nargs="?", default=None,
+                            choices=[t.name for t in _listed_handbook()],
+                            metavar="NAME",
+                            help="Handbook doc to print. Omit to list the available docs.")
 
     # ai-skill
     p_ai_skill = subparsers.add_parser("ai-skill", help="Print compact AI agent reference (pass a command name for its full block)")
@@ -347,9 +374,9 @@ def main(argv: list[str] | None = None) -> int:
         # Find the subcommand name: skip flags and their values
         known_subcommands = {
             "regenerate", "make", "delete", "move", "punch", "hoist",
-            "copy", "attach", "rewrite", "rename", "init",
+            "copy", "attach", "rewrite", "rename", "init", "update",
             "portable", "ai-skill", "cat", "tree", "ls", "bundle", "orphans",
-            "mdapi",
+            "mdapi", "handbook",
         }
         cmd_candidates = [a for a in argv if a in known_subcommands]
         if cmd_candidates:
@@ -370,21 +397,28 @@ def main(argv: list[str] | None = None) -> int:
         print("Run `rhidoc ai-skill` for full semantic documentation.")
         return 0
 
+    # --version is sugar for the `version` subcommand.
+    if args.version:
+        args.command = "version"
+
     if not args.command:
         parser.print_help()
         return 1
 
     try:
-        # init and portable don't require a pre-existing workspace
+        # handbook reads only the installed package — no workspace needed.
+        if args.command == "handbook":
+            cmd_handbook(args)
+            return 0
+
+        # init doesn't require a pre-existing workspace
         if args.command == "init":
-            if args.rehydrate:
-                try:
-                    rhidoc_root = find_workspace()
-                except FileNotFoundError as e:
-                    raise RhidocError(f"Error: {e}\nHint: run `rhidoc init` first to scaffold a workspace.")
-                cmd_init_rehydrate(args, rhidoc_root)
-            else:
-                cmd_init(args)
+            cmd_init(args)
+            return 0
+
+        # version reports the installed rhidoc — no workspace required
+        if args.command == "version":
+            cmd_version(args)
             return 0
 
         # Resolve workspace
@@ -394,13 +428,16 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 rhidoc_root = find_workspace()
             except FileNotFoundError as e:
-                raise RhidocError(f"Error: {e}")
+                hint = ("\nHint: run `rhidoc init` first to scaffold a workspace."
+                        if args.command == "update" else "")
+                raise RhidocError(f"Error: {e}{hint}")
 
         if args.command == "portable":
             cmd_portable(args, rhidoc_root)
             return 0
 
         dispatch = {
+            "update": cmd_update,
             "regenerate": cmd_regenerate,
             "make": cmd_make,
             "delete": cmd_delete,

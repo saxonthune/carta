@@ -78,6 +78,31 @@ class DocRef:
         """Canonical form: docXX.YY.ZZ (zero-padded 2-digit segments)."""
         return "doc" + ".".join(f"{s:02d}" for s in self.segments)
 
+    def matcher(self) -> re.Pattern[str]:
+        """Compiled word-boundary pattern for finding this exact ref in prose.
+
+        Same boundary rules as SCAN, scoped to this ref's canonical form.
+        """
+        return re.compile(r'(?<!\w)' + re.escape(str(self)) + r'(?!\.[a-zA-Z0-9])')
+
+    @classmethod
+    def from_directory_and_prefix(cls, directory: Path, prefix: int) -> DocRef:
+        """Derive the ref for the bundle at `prefix` inside `directory`, lexically.
+
+        Collects the trailing run of NN-prefixed path components — the segments
+        below the workspace root, which itself has no NN- prefix — and appends
+        `prefix`. Needs no workspace root, so error paths can name a full ref.
+        """
+        segments: list[int] = []
+        for part in directory.parts:
+            en = EntryName.parse(part)
+            if en is not None and en.ext is None:
+                segments.append(en.prefix)
+            else:
+                segments = []
+        segments.append(prefix)
+        return cls(segments=tuple(segments))
+
     def to_path(self, rhidoc_root: Path) -> Path:
         """Resolve this ref to a filesystem path under rhidoc_root.
 
@@ -108,7 +133,7 @@ class DocRef:
         return current
 
     @classmethod
-    def from_path(cls, path: Path, rhidoc_root: Path) -> DocRef:
+    def from_path(cls, path: Path, rhidoc_root: Path, check_orphan: bool = True) -> DocRef:
         """Derive a DocRef from a filesystem path under rhidoc_root.
 
         For .md files and directories: extracts the NN prefix from each
@@ -119,6 +144,10 @@ class DocRef:
         includes the sidecar's own prefix as the final segment.
 
         Raises ValueError if any component lacks a 2-digit prefix.
+
+        check_orphan gates the sidecar host-existence check, which reads the
+        filesystem. Pass False to derive the ref of a not-yet-created path (e.g.
+        a move destination), where the host check is both impossible and moot.
         """
         rel = path.relative_to(rhidoc_root)
         parts = list(rel.parts)
@@ -129,16 +158,17 @@ class DocRef:
             if sidecar_m:
                 prefix_str = sidecar_m.group(1)
 
-                parent_dir = path.parent
-                has_md_root = any(
-                    p.suffix == ".md" and p.name.startswith(f"{prefix_str}-")
-                    for p in parent_dir.iterdir()
-                )
-                if not has_md_root:
-                    raise ValueError(
-                        f"Sidecar {last!r} is an orphan — "
-                        f"no host .md with prefix {prefix_str}"
+                if check_orphan:
+                    parent_dir = path.parent
+                    has_md_root = any(
+                        p.suffix == ".md" and p.name.startswith(f"{prefix_str}-")
+                        for p in parent_dir.iterdir()
                     )
+                    if not has_md_root:
+                        raise ValueError(
+                            f"Sidecar {last!r} is an orphan — "
+                            f"no host .md with prefix {prefix_str}"
+                        )
 
                 segments: list[int] = []
                 for part in parts[:-1]:

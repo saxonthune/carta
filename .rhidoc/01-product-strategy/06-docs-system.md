@@ -12,7 +12,7 @@ The `.rhidoc/` workspace format is Rhidoc's primary product. It defines a standa
 ## What It Provides
 
 - **Numbered titles**: Directories use `NN-slug/` naming for stable ordering
-- **YAML frontmatter**: Each document has typed metadata (title, status, summary, tags, deps)
+- **YAML frontmatter**: Each document has typed metadata (title, summary, tags, deps)
 - **Cross-references**: `docXX.YY.ZZ` syntax for linking between documents, automatically rewritten on structural changes
 - **MANIFEST.md**: Machine-readable index regenerated from frontmatter, enabling AI retrieval without reading every file
 - **Tag index**: Keyword-to-doc mapping for fast file-path→doc lookup
@@ -28,4 +28,4 @@ The `.rhidoc/` workspace format is Rhidoc's primary product. It defines a standa
 
 - **Rhidoc Docs API** (doc01.07.01): Deterministic Python operations for manipulating workspace documents
 
-See the codex (doc00.00 through doc00.03) for usage and conventions, and the docs syntax reference (doc01.10) for the full formal grammar.
+See the handbook (doc00.00 through doc00.06) for usage and conventions, and the docs syntax reference (doc01.10) for the full formal grammar.
