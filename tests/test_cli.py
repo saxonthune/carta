@@ -383,6 +383,54 @@ def test_move_gap_close_group_with_sidecar_dry_run(tmp_path):
     assert (rhidoc / "02-design/01-alpha.md").exists()
 
 
+def _build_relative_link_fixture(tmp_path: Path) -> Path:
+    """Two sibling docs where one holds a relative markdown link to the other."""
+    rhidoc = tmp_path / ".rhidoc"
+    (tmp_path / MARKER).write_text(
+        json.dumps({"root": ".rhidoc/", "title": "T"}), encoding="utf-8")
+    _write(rhidoc / "02-design/00-index.md",
+           _fm("Design", summary="Design index.", tags=["index"]), "# Design\n")
+    _write(rhidoc / "02-design/01-alpha.md", _fm("Alpha", summary="a", tags=["x"]),
+           "# Alpha\n\nSee [Beta](02-beta.md) for the rest.\n")
+    _write(rhidoc / "02-design/02-beta.md", _fm("Beta", summary="b", tags=["x"]), "# Beta\n")
+    result = _run_rhidoc(rhidoc, "regenerate")
+    assert result.returncode == 0, result.stderr
+    return rhidoc
+
+
+def test_rename_rewrites_relative_links(tmp_path):
+    """rename swaps the basename of relative links pointing at the renamed file."""
+    rhidoc = _build_relative_link_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "rename", "doc02.02", "gamma")
+    assert result.returncode == 0, result.stderr
+    assert "Relative links rewritten: 1 in 1 file(s)" in result.stdout
+    alpha = (rhidoc / "02-design/01-alpha.md").read_text(encoding="utf-8")
+    assert "](02-gamma.md)" in alpha
+    assert "02-beta.md" not in alpha
+
+
+def test_move_warns_but_does_not_rewrite_relative_links(tmp_path):
+    """move renumbers the target's filename; it warns about the now-stale relative
+    link rather than rewriting it."""
+    rhidoc = _build_relative_link_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "move", "doc02.02", "--at", "doc02.08")
+    assert result.returncode == 0, result.stderr
+    assert "Warning:" in result.stdout
+    assert "1 relative link(s) in 1 file(s)" in result.stdout
+    # The link is left as-is (only canonical refs are updated on move).
+    alpha = (rhidoc / "02-design/01-alpha.md").read_text(encoding="utf-8")
+    assert "](02-beta.md)" in alpha
+
+
+def test_move_dry_run_warns_about_relative_links(tmp_path):
+    """The warning also fires on --dry-run, before anything is moved."""
+    rhidoc = _build_relative_link_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "move", "doc02.02", "--at", "doc02.08", "--dry-run")
+    assert result.returncode == 0, result.stderr
+    assert "would still point" in result.stdout
+    assert (rhidoc / "02-design/02-beta.md").exists()
+
+
 def test_init_creates_user_slot(run_cli, tmp_path):
     """doc00.07 is scaffolded empty for the user's own doctrine."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)

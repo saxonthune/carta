@@ -10,7 +10,7 @@ from ..frontmatter import write_frontmatter
 from ..entries import resolve_arg, resolve_and_validate, list_numbered_entries, display_path
 from ..numbering import compute_insertion_prefix
 from ..docref import DocRef, EntryName
-from ..rewriter import rewrite_refs
+from ..rewriter import rewrite_refs, rewrite_relative_links, find_relative_link_breaks
 from ..planning import compute_all_moves, compute_rename_map, print_rename_map
 from ..workspace import collect_rewritable_files
 from ..regenerate_core import do_regenerate
@@ -601,8 +601,14 @@ def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     rename_map = compute_rename_map(moves, rhidoc_root)
 
+    # Detect relative links before the move, while their targets still resolve. move
+    # renumbers and can change directories, so these are not auto-rewritten (unlike
+    # rename); the user is warned instead.
+    link_breaks = find_relative_link_breaks(collect_rewritable_files(rhidoc_root), moves)
+
     if a.dry_run:
         print_rename_map(rename_map, moves)
+        _report_link_breaks(link_breaks, rhidoc_root, dry_run=True)
         print("\n(dry-run: no files modified)")
         if mkdir_created:
             shutil.rmtree(str(dest_path))
@@ -625,6 +631,22 @@ def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
     print(f"Rename map ({len(rename_map)} entries):")
     for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
         print(f"  {old_ref} -> {new_ref}")
+    _report_link_breaks(link_breaks, rhidoc_root, dry_run=False)
+
+
+def _report_link_breaks(
+    link_breaks: list[tuple[Path, str]], rhidoc_root: Path, dry_run: bool
+) -> None:
+    """Warn about relative links that move left (or would leave) pointing at an old name."""
+    if not link_breaks:
+        return
+    files_affected = {f for f, _ in link_breaks}
+    verb = "would still point" if dry_run else "still point"
+    print(f"\nWarning: {len(link_breaks)} relative link(s) in {len(files_affected)} file(s) "
+          f"{verb} at a moved file. Canonical docXX.YY refs were updated; relative links "
+          f"were not — fix these by hand or switch them to docXX.YY refs:")
+    for fpath, target in link_breaks:
+        print(f"  {display_path(fpath, rhidoc_root)}: {target}")
 
 
 # ---------------------------------------------------------------------------
@@ -702,6 +724,10 @@ def cmd_rename(args: argparse.Namespace, rhidoc_root: Path) -> None:
     for old, new in renames:
         shutil.move(str(old), str(new))
 
+    # A rename keeps the file in place, so relative links break only in their basename —
+    # a safe swap. Canonical docXX.YY refs are unaffected (the coordinate does not change).
+    link_results = rewrite_relative_links(collect_rewritable_files(rhidoc_root), renames)
+
     if not a.no_regen:
         do_regenerate(rhidoc_root, _load_preamble(rhidoc_root.name))
 
@@ -709,3 +735,6 @@ def cmd_rename(args: argparse.Namespace, rhidoc_root: Path) -> None:
         print(f"Renamed: {old.name} -> {new.name}")
     for att in unchanged:
         print(f"Left unchanged (same prefix, different slug): {att.name}")
+    if link_results:
+        total = sum(link_results.values())
+        print(f"Relative links rewritten: {total} in {len(link_results)} file(s)")

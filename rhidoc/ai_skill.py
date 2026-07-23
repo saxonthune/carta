@@ -177,6 +177,8 @@ Side effects:
   - Operates on bundles — non-md siblings sharing the source's numeric prefix travel with it.
   - Removes source from its parent; gap-closes source siblings (unless --no-gap-close).
   - Rewrites all cross-references in workspace + externalRefPaths.
+  - Warns about relative markdown links left pointing at a moved file — canonical refs
+    are rewritten, relative links are not (fix by hand or switch them to docXX.YY refs).
   - Regenerates MANIFEST.md (unless --no-regen).
 
 Flags:
@@ -370,7 +372,9 @@ Arguments:
 Side effects:
   - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
   - Renames the file/directory on disk (and renames attachment files to match the new slug).
-  - Does NOT rewrite cross-references (use `rhidoc rewrite` for that).
+  - Rewrites relative markdown links pointing at the renamed file (basename swap; the file
+    stays in place, so this is safe).
+  - Does NOT rewrite canonical docXX.YY refs — the coordinate is unchanged by a rename.
   - Regenerates MANIFEST.md (unless --no-regen).
 
 Flags:

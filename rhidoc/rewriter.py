@@ -1,7 +1,93 @@
+import re
 import uuid
 from pathlib import Path
 
 from .docref import DocRef
+
+
+# Inline markdown link target: the `path` in `](path)` or `](<path>)`. Targets with
+# spaces (e.g. a `](path "title")` form) don't match and are left untouched — file
+# links have no spaces, so this stays conservative.
+_MD_LINK_RE = re.compile(r'\]\((?P<lb><)?(?P<target>[^)\s>]+)(?P<rb>>)?\)')
+
+
+def _resolved_link_path(linking_file: Path, target: str) -> Path | None:
+    """Resolve a link target to an absolute path, or None if it isn't a local path.
+
+    Drops the anchor, and skips URLs and mailto: — only workspace-relative file
+    links are candidates. Path math only; the target need not exist.
+    """
+    clean = target.split('#', 1)[0].strip()
+    if not clean or '://' in clean or clean.startswith('mailto:'):
+        return None
+    return (linking_file.parent / clean).resolve()
+
+
+def find_relative_link_breaks(
+    files: list[Path],
+    renames: list[tuple[Path, Path]],
+) -> list[tuple[Path, str]]:
+    """Find inline relative links whose target resolves to a rename's old path.
+
+    Returns (linking_file, target_str) pairs. Scan the files BEFORE executing the
+    moves, while their targets still resolve against the current tree.
+    """
+    old_paths = {old.resolve() for old, _ in renames}
+    breaks: list[tuple[Path, str]] = []
+    for fpath in files:
+        try:
+            text = fpath.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for m in _MD_LINK_RE.finditer(text):
+            resolved = _resolved_link_path(fpath, m.group('target'))
+            if resolved is not None and resolved in old_paths:
+                breaks.append((fpath, m.group('target')))
+    return breaks
+
+
+def rewrite_relative_links(
+    files: list[Path],
+    renames: list[tuple[Path, Path]],
+) -> dict[Path, int]:
+    """Rewrite inline relative links whose target resolves to a rename's old path.
+
+    Swaps the target's final path segment for the new basename, preserving the
+    directory portion and any anchor. Safe only when the file stays in place (rename),
+    so the directory portion of every link is still correct. Returns {file: count}.
+    """
+    old_to_new = {old.resolve(): new for old, new in renames if old.name != new.name}
+    if not old_to_new:
+        return {}
+
+    results: dict[Path, int] = {}
+    for fpath in files:
+        try:
+            text = fpath.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+
+        count = 0
+
+        def repl(m: re.Match) -> str:
+            nonlocal count
+            resolved = _resolved_link_path(fpath, m.group('target'))
+            new_path = old_to_new.get(resolved) if resolved is not None else None
+            if new_path is None:
+                return m.group(0)
+            path_part, sep, anchor = m.group('target').partition('#')
+            segments = path_part.rsplit('/', 1)
+            segments[-1] = new_path.name
+            new_target = '/'.join(segments) + sep + anchor
+            count += 1
+            return f']({m.group("lb") or ""}{new_target}{m.group("rb") or ""})'
+
+        new_text = _MD_LINK_RE.sub(repl, text)
+        if count:
+            fpath.write_text(new_text, encoding="utf-8")
+            results[fpath] = count
+
+    return results
 
 
 def collect_md_files(rhidoc_root: Path, external_paths: list[Path]) -> list[Path]:
