@@ -324,6 +324,65 @@ def test_version_reports_cli_and_templates(run_cli, tmp_path):
     assert f"templates {TEMPLATES_VERSION}" in out
 
 
+def _build_group_with_sidecar_fixture(dest: Path) -> Path:
+    """A section with three leaves followed by a group directory holding a sidecar.
+
+    This is the shape that made `move` resolve a directory by its post-move name:
+    a move that gap-closes or relocates the group must derive the sidecar's new ref
+    without touching the not-yet-existing new directory.
+    """
+    rhidoc = dest / ".rhidoc"
+    (dest / MARKER).write_text(
+        json.dumps({"root": ".rhidoc/", "title": "T"}), encoding="utf-8")
+    _write(rhidoc / "02-design/00-index.md",
+           _fm("Design", summary="Design index.", tags=["index"]), "# Design\n")
+    _write(rhidoc / "02-design/01-alpha.md", _fm("Alpha", summary="A.", tags=["x"]))
+    _write(rhidoc / "02-design/02-beta.md", _fm("Beta", summary="B.", tags=["x"]))
+    _write(rhidoc / "02-design/03-gamma.md", _fm("Gamma", summary="G.", tags=["x"]))
+    _write(rhidoc / "02-design/04-dataflow/00-index.md",
+           _fm("Dataflow", summary="Dataflow index.", tags=["index"]), "# Dataflow\n")
+    _write(rhidoc / "02-design/04-dataflow/01-shell.md", _fm("Shell", summary="S.", tags=["x"]))
+    (rhidoc / "02-design/04-dataflow/01-shell.statechart.json").write_text(
+        "{}\n", encoding="utf-8")
+    result = _run_rhidoc(rhidoc, "regenerate")
+    assert result.returncode == 0, result.stderr
+    return rhidoc
+
+
+def test_move_gap_close_group_with_sidecar(tmp_path):
+    """Moving a leaf into a later group gap-closes that group (04->03). Deriving the
+    sidecar's new ref must not iterdir the group's not-yet-existing new name."""
+    rhidoc = _build_group_with_sidecar_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "move", "doc02.01", "02-design/04-dataflow")
+    assert result.returncode == 0, result.stderr
+    assert "Errno 2" not in result.stderr
+    # Group gap-closed 04 -> 03; the sidecar rode along.
+    assert (rhidoc / "02-design/03-dataflow/01-shell.statechart.json").exists()
+    # The moved leaf landed inside the group at its appended slot.
+    assert (rhidoc / "02-design/03-dataflow/02-alpha.md").exists()
+
+
+def test_move_at_directory_with_sidecar(tmp_path):
+    """`move --at` of a group with a sidecar to a free slot must not fail resolving
+    the group's post-move name."""
+    rhidoc = _build_group_with_sidecar_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "move", "doc02.04", "--at", "doc02.06")
+    assert result.returncode == 0, result.stderr
+    assert "Errno 2" not in result.stderr
+    assert (rhidoc / "02-design/06-dataflow/01-shell.statechart.json").exists()
+
+
+def test_move_gap_close_group_with_sidecar_dry_run(tmp_path):
+    """The failure was at plan time, so --dry-run reproduced it too — guard it."""
+    rhidoc = _build_group_with_sidecar_fixture(tmp_path)
+    result = _run_rhidoc(rhidoc, "move", "doc02.01", "02-design/04-dataflow", "--dry-run")
+    assert result.returncode == 0, result.stderr
+    assert "Errno 2" not in result.stderr
+    # Nothing moved.
+    assert (rhidoc / "02-design/04-dataflow/01-shell.statechart.json").exists()
+    assert (rhidoc / "02-design/01-alpha.md").exists()
+
+
 def test_init_creates_user_slot(run_cli, tmp_path):
     """doc00.07 is scaffolded empty for the user's own doctrine."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)

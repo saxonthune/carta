@@ -311,7 +311,9 @@ def compute_rename_map(
             final = trace_path(item, moves)
             try:
                 old_ref = DocRef.from_path(item, rhidoc_root)
-                new_ref = DocRef.from_path(final, rhidoc_root)
+                # `final` names a post-move path that does not exist yet; deriving its
+                # ref must not touch the filesystem (the sidecar host check would fail).
+                new_ref = DocRef.from_path(final, rhidoc_root, check_orphan=False)
                 if old_ref != new_ref:
                     result[old_ref] = new_ref
             except ValueError:
