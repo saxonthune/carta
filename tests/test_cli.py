@@ -431,6 +431,31 @@ def test_move_dry_run_warns_about_relative_links(tmp_path):
     assert (rhidoc / "02-design/02-beta.md").exists()
 
 
+def test_rewrite_dry_run_shows_matched_lines(tmp_path):
+    """rewrite --dry-run prints each matched line, so a ref used as an example is
+    visible before it gets rewritten like a real reference."""
+    rhidoc = tmp_path / ".rhidoc"
+    (tmp_path / MARKER).write_text(
+        json.dumps({"root": ".rhidoc/", "title": "T"}), encoding="utf-8")
+    _write(rhidoc / "01-strategy/00-index.md",
+           _fm("Strategy", summary="Strategy index.", tags=["index"]), "# Strategy\n")
+    _write(rhidoc / "01-strategy/01-real.md", _fm("Real", summary="r", tags=["x"]),
+           "# Real\n\nA real pointer to doc01.02 lives here.\n")
+    _write(rhidoc / "01-strategy/02-guide.md", _fm("Guide", summary="g", tags=["x"]),
+           "# Guide\n\nWrite a doc ref like doc01.02 as an example.\n")
+    result = _run_rhidoc(rhidoc, "regenerate")
+    assert result.returncode == 0, result.stderr
+
+    result = _run_rhidoc(rhidoc, "rewrite", "doc01.02=doc01.09", "--dry-run")
+    assert result.returncode == 0, result.stderr
+    # Each match is shown as a line with its number and the ref, not just a count.
+    assert "as an example" in result.stdout
+    assert "real pointer" in result.stdout
+    assert "(doc01.02)" in result.stdout
+    # It is a plan only — nothing was rewritten.
+    assert "doc01.09" not in (rhidoc / "01-strategy/02-guide.md").read_text(encoding="utf-8")
+
+
 def test_init_creates_user_slot(run_cli, tmp_path):
     """doc00.07 is scaffolded empty for the user's own doctrine."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)

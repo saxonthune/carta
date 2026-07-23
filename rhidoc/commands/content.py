@@ -238,19 +238,33 @@ def cmd_rewrite(args: argparse.Namespace, rhidoc_root: Path) -> None:
         for old, new in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old} -> {new}")
         print(f"\nScanning {len(md_files)} file(s)...")
+        matchers = [(old, old.matcher()) for old in rename_map]
         total = 0
+        files_with_matches = 0
         for fpath in md_files:
             try:
                 text = fpath.read_text(encoding='utf-8')
             except (OSError, UnicodeDecodeError):
                 continue
-            for old in rename_map:
-                matches = DocRef.SCAN.findall(text)
-                matches = [m for m in matches if m == str(old)]
-                if matches:
-                    total += len(matches)
-                    print(f"  {display_path(fpath, rhidoc_root)}: {len(matches)} match(es) for {old}")
-        print(f"\nTotal: {total} replacement(s) would be made.")
+            # Report the matched line, not just a count: a ref shown as an example (in
+            # docs about rhidoc itself, which externalRefPaths can include) is rewritten
+            # exactly like a real reference, and only the line reveals which is which.
+            line_hits: list[tuple[int, str, DocRef, int]] = []
+            for lineno, line in enumerate(text.splitlines(), 1):
+                for old, pattern in matchers:
+                    n = sum(1 for _ in pattern.finditer(line))
+                    if n:
+                        line_hits.append((lineno, line.strip(), old, n))
+            if line_hits:
+                files_with_matches += 1
+                file_total = sum(n for *_, n in line_hits)
+                total += file_total
+                print(f"  {display_path(fpath, rhidoc_root)}: {file_total} match(es)")
+                for lineno, line, old, n in line_hits:
+                    suffix = f" x{n}" if n > 1 else ""
+                    print(f"      L{lineno} ({old}{suffix}): {line[:100]}")
+        print(f"\nTotal: {total} replacement(s) across {files_with_matches} file(s) would be made.")
+        print("Review the lines above — a ref used as an example is rewritten like a real one.")
         print("(dry-run: no files modified)")
         return
 

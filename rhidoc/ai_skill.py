@@ -351,9 +351,12 @@ Side effects:
   - Normalizes both sides of each mapping to canonical form.
   - Rewrites all canonical ref occurrences in workspace `.md` files and externalRefPaths.
   - Does NOT regenerate MANIFEST.md.
+  - Note: a ref used as an example (e.g. in docs about rhidoc itself, which externalRefPaths
+    can include) is rewritten just like a real reference. Preview with --dry-run first.
 
 Flags:
-  --dry-run  Show which files and how many replacements would be made.
+  --dry-run  Print each matched line with its line number and ref, not just per-file counts,
+             so an example ref is visible before it is rewritten. No files are modified.
 """,
 
     "rename": """\
