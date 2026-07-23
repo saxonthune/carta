@@ -2,24 +2,26 @@
 set -euo pipefail
 
 # Launch execute-plan.sh in the background with log capture.
-# Usage: launch.sh <plan-name> [--no-merge]
+# Usage: launch.sh <plan-name> [--no-merge] [--watch]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 PLAN_SLUG=""
 EXTRA_ARGS=""
+WATCH=false
 
 for arg in "$@"; do
   case "$arg" in
     --no-merge) EXTRA_ARGS+=" --no-merge" ;;
+    --watch) WATCH=true ;;
     -*) echo "Unknown option: $arg"; exit 1 ;;
     *) PLAN_SLUG="$arg" ;;
   esac
 done
 
 if [[ -z "$PLAN_SLUG" ]]; then
-  echo "Usage: launch.sh <plan-name> [--no-merge]"
+  echo "Usage: launch.sh <plan-name> [--no-merge] [--watch]"
   exit 1
 fi
 
@@ -40,3 +42,9 @@ nohup bash "${SCRIPT_DIR}/execute-plan.sh" "${PLAN_SLUG}" ${EXTRA_ARGS} > "${LOG
 echo "Agent launched: ${PLAN_SLUG} (pid $!)"
 echo "Log: tail -f ${LOG}"
 echo "Results: .todo-tasks/results/${PLAN_SLUG}.agent.md (+ .merge.md after merge)"
+
+if [[ "$WATCH" == "true" ]]; then
+  echo ""
+  echo "Watching until ${PLAN_SLUG} reaches a terminal state..."
+  exec bash "${SCRIPT_DIR}/wait.sh" "${PLAN_SLUG}"
+fi

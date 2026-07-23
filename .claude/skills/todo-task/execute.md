@@ -24,7 +24,8 @@ Launch a headless agent to implement a triaged plan.
 
 4. **Report** — Tell the user:
    - Agent is running in the background
-   - Check progress: `tail -f .todo-tasks/.running/{slug}.log`
+   - Wait for completion: `bash .claude/skills/todo-task/launch.sh {slug} --watch` (foreground, blocks and exits with the outcome) — or, to watch an already-launched run without relaunching it, `bash .claude/skills/todo-task/wait.sh {slug}` in a background shell
+   - Check progress live: `tail -f .todo-tasks/.running/{slug}.log`
    - Check results: `.todo-tasks/results/{slug}.agent.md` (+ `.merge.md` after merge)
    - Check status: `/todo-task status`
 

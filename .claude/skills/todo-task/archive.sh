@@ -10,6 +10,10 @@ set -uo pipefail
 #   archive.sh                 archive every auto-eligible outcome
 #   archive.sh <slug> [...]    archive specific task slug(s)
 #   archive.sh --force-failed  also archive failures (build/session/no-op/leak)
+#   archive.sh --merged <slug> archive slug(s) the operator merged/resolved by hand
+#                               (bypasses outcome eligibility, e.g. salvageable;
+#                               still skips a slug that is still running; requires
+#                               at least one explicit slug — never a sweep)
 #
 # Auto-eligibility (per outcome):
 #   success                              → yes
@@ -26,14 +30,21 @@ source "${SCRIPT_DIR}/lib.sh"
 
 TS="$(date +%Y%m%d)"
 FORCE_FAILED=false
+MERGED=false
 SLUGS=()
 for arg in "$@"; do
   case "$arg" in
     --force-failed) FORCE_FAILED=true ;;
+    --merged) MERGED=true ;;
     -*) echo "Unknown option: $arg"; exit 1 ;;
     *) SLUGS+=("$arg") ;;
   esac
 done
+
+if [[ "$MERGED" == "true" && ${#SLUGS[@]} -eq 0 ]]; then
+  echo "Usage: archive.sh --merged <slug> [...] — --merged requires explicit slug(s), it is never a sweep"
+  exit 1
+fi
 
 # force_eligible <overall> — failures that --force-failed will archive.
 # Note: SM_OVERALL_SALVAGEABLE is intentionally absent — never auto-rm a worktree
@@ -45,9 +56,9 @@ force_eligible() {
   esac
 }
 
-# archive_one <slug>
+# archive_one <slug> <disposition>   disposition ∈ {success, abandoned}
 archive_one() {
-  local slug="$1"
+  local slug="$1" disposition="${2:-$SM_OVERALL_SUCCESS}"
   mkdir -p "${TODO}/.archived"
 
   local run="${TODO}/.running/${slug}.run" wt="" br=""
@@ -73,6 +84,8 @@ archive_one() {
     git -C "$REPO_ROOT" commit -q -m "todotask: archive ${slug}" >/dev/null 2>&1 || true
   fi
 
+  printf '%s\n' "$disposition" > "${TODO}/.archived/${TS}-${slug}.disposition"
+
   clear_run_record "$slug"
   [[ -n "$wt" && -d "$wt" ]] && git worktree remove --force "$wt" 2>/dev/null || true
   [[ -n "$br" ]] && git branch -D "$br" 2>/dev/null || true
@@ -89,6 +102,7 @@ archive_chain() {
   if ! git -C "$REPO_ROOT" diff --cached --quiet; then
     git -C "$REPO_ROOT" commit -q -m "todotask: archive chain ${name}" >/dev/null 2>&1 || true
   fi
+  printf '%s\n' "$SM_OVERALL_SUCCESS" > "${TODO}/.archived/${TS}-chain-${name}.disposition"
   echo "- Archived chain ${name}"
 }
 
@@ -105,18 +119,35 @@ if [[ ${#SLUGS[@]} -gt 0 ]]; then
     if [[ "$phase" == "running" ]]; then
       echo "- Skipped ${slug} (still running)"; continue
     fi
+    if [[ "$MERGED" == "true" ]]; then
+      echo "- Archiving ${slug} (operator asserts merged to trunk)"
+      archive_one "$slug" "$SM_OVERALL_SUCCESS"; archived=$((archived+1)); continue
+    fi
     if [[ "$overall" == "$SM_OVERALL_SUCCESS" ]] || { [[ "$FORCE_FAILED" == "true" ]] && force_eligible "$overall"; }; then
-      archive_one "$slug"; archived=$((archived+1))
+      disp="$SM_OVERALL_SUCCESS"
+      [[ "$overall" != "$SM_OVERALL_SUCCESS" ]] && disp="$SM_ARCHIVE_ABANDONED"
+      archive_one "$slug" "$disp"; archived=$((archived+1))
     else
       echo "- Skipped ${slug} (${overall}) — pass --force-failed to archive failures, or merge/resolve manually"
     fi
   done
 else
+  # Refuse the unscoped sweep inside a todotask agent worktree: it would archive
+  # (git rm) sibling tasks' merged results and carry the deletions to trunk on the
+  # agent's squash-merge. Explicit `archive.sh <slug>` / `--merged` remain allowed.
+  current_branch="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+  if [[ "$current_branch" == *_claude* ]]; then
+    echo "- Refusing sweep: running inside a todotask agent worktree (branch ${current_branch})."
+    echo "  The unscoped sweep archives sibling tasks. Run archive from trunk, or name a slug."
+    exit 0
+  fi
   # Sweep: every auto-eligible outcome.
   while IFS=$'\t' read -r _ slug phase overall _bucket _commits _wt _br _age _notes; do
     [[ "$phase" == "done" || "$phase" == "crashed" ]] || continue
     if [[ "$overall" == "$SM_OVERALL_SUCCESS" ]] || { [[ "$FORCE_FAILED" == "true" ]] && force_eligible "$overall"; }; then
-      archive_one "$slug"; archived=$((archived+1))
+      disp="$SM_OVERALL_SUCCESS"
+      [[ "$overall" != "$SM_OVERALL_SUCCESS" ]] && disp="$SM_ARCHIVE_ABANDONED"
+      archive_one "$slug" "$disp"; archived=$((archived+1))
     fi
   done < <(bash "${SCRIPT_DIR}/report.sh" task)
 
@@ -126,4 +157,7 @@ else
   done < <(bash "${SCRIPT_DIR}/report.sh" chain)
 fi
 
-[[ $archived -eq 0 ]] && echo "- Nothing to archive."
+if [[ $archived -eq 0 ]]; then
+  echo "- Nothing to archive."
+fi
+exit 0

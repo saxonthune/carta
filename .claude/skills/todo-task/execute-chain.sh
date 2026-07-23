@@ -156,21 +156,37 @@ fi
 
 # ─── Create Chain Worktree ──────────────────────────────────────────────────
 
+RESUME_CHAIN=false
+if git worktree list | grep -q "${CHAIN_WORKTREE}" && [[ -d "${CHAIN_RESULTS}" ]]; then
+  for slug in "${PHASES[@]}"; do
+    if [[ "$(classify_task "${CHAIN_RESULTS}/${slug}.agent.md" "${CHAIN_RESULTS}/${slug}.merge.md")" == "$SM_OVERALL_SUCCESS" ]]; then
+      RESUME_CHAIN=true
+      break
+    fi
+  done
+fi
+
 echo "── Creating chain worktree ──"
 
-if git worktree list | grep -q "${CHAIN_WORKTREE}"; then
-  echo "Removing existing chain worktree..."
-  git worktree remove --force "${CHAIN_WORKTREE}" 2>/dev/null || true
-fi
+if [[ "$RESUME_CHAIN" == "true" ]]; then
+  echo "Existing chain worktree has completed phases — resuming and preserving work."
+  echo "Chain worktree: ${CHAIN_WORKTREE}"
+  echo ""
+else
+  if git worktree list | grep -q "${CHAIN_WORKTREE}"; then
+    echo "Removing existing chain worktree..."
+    git worktree remove --force "${CHAIN_WORKTREE}" 2>/dev/null || true
+  fi
 
-if git branch --list "${CHAIN_BRANCH}" | grep -q "${CHAIN_BRANCH}"; then
-  echo "Deleting existing chain branch..."
-  git branch -D "${CHAIN_BRANCH}" 2>/dev/null || true
-fi
+  if git branch --list "${CHAIN_BRANCH}" | grep -q "${CHAIN_BRANCH}"; then
+    echo "Deleting existing chain branch..."
+    git branch -D "${CHAIN_BRANCH}" 2>/dev/null || true
+  fi
 
-git worktree add -b "${CHAIN_BRANCH}" "${CHAIN_WORKTREE}" "${REAL_TRUNK}"
-echo "Chain worktree created at ${CHAIN_WORKTREE}"
-echo ""
+  git worktree add -b "${CHAIN_BRANCH}" "${CHAIN_WORKTREE}" "${REAL_TRUNK}"
+  echo "Chain worktree created at ${CHAIN_WORKTREE}"
+  echo ""
+fi
 
 # ─── Write Chain Run-record ──────────────────────────────────────────────────
 
@@ -208,6 +224,9 @@ for i in "${!PHASES[@]}"; do
        --trunk-branch "${CHAIN_BRANCH}" \
        --no-guard; then
     echo "Phase ${slug} succeeded."
+  elif [[ "$(classify_task "${CHAIN_RESULTS}/${slug}.agent.md" "${CHAIN_RESULTS}/${slug}.merge.md")" == "$SM_OVERALL_SUCCESS" ]]; then
+    echo "Phase ${slug} exited non-zero but its result files classify success"
+    echo "(merged cleanly into the chain branch). Treating phase as succeeded and continuing."
   else
     echo "Phase ${slug} failed. Stopping chain."
     echo ""

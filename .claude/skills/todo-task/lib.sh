@@ -35,6 +35,10 @@ readonly SM_OVERALL_BUILD_FAIL="build_failure"
 readonly SM_OVERALL_SESSION_FAIL="session_failed"
 readonly SM_OVERALL_SALVAGEABLE="salvageable"
 
+# Archive disposition (recorded by archive.sh, read by report.sh:emit_archived).
+# Resolved archives reuse SM_OVERALL_SUCCESS ("success"); abandoned ones use this.
+readonly SM_ARCHIVE_ABANDONED="abandoned"
+
 # Buckets (for dashboard grouping)
 readonly SM_BUCKET_SUCCESS="success"
 readonly SM_BUCKET_READY="ready_for_review"
@@ -202,10 +206,10 @@ source_task_config() {
   fi
   WORKTREE_PREFIX="${WORKTREE_PREFIX:-todotask}"
   REPO_NAME="$(basename "${REPO_ROOT}")"
-  MAX_BUDGET="${MAX_BUDGET:-5.00}"
-  RETRY_BUDGET="${RETRY_BUDGET:-3.00}"
+  MAX_BUDGET="${MAX_BUDGET:-10.00}"
+  RETRY_BUDGET="${RETRY_BUDGET:-6.00}"
   MAX_RETRIES="${MAX_RETRIES:-4}"
-  MAX_TURNS="${MAX_TURNS:-100}"
+  MAX_TURNS="${MAX_TURNS:-200}"
 }
 
 # summarize_uncommitted <dir>

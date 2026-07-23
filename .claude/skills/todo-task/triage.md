@@ -146,6 +146,12 @@ The `## Surface after this phase` block is the contract that downstream phases t
 
 > The `## Verification` section MUST contain at least one fenced bash/sh code block. execute-plan.sh parses commands from that block to run as the verification gate.
 
+> **Verification must be non-destructive.** The block runs inside the agent's
+> worktree and whatever it commits merges to trunk. Never invoke `archive.sh`
+> (sweep), `git rm`, worktree removal, or anything that mutates trunk or other
+> tasks. Treat `.todo-tasks/` as orchestrator-owned and off-limits to a task's own
+> verification. Test exit codes with a scoped, side-effect-free invocation.
+
 ## Step 7: Confirm and hand off
 
 Tell the user the task has been triaged with a brief summary of the plan, then offer to launch:

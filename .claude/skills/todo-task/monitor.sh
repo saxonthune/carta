@@ -97,7 +97,7 @@ overall_label() {
   case "$1" in
     "$SM_OVERALL_SUCCESS")      echo "success" ;;
     "$SM_OVERALL_READY")        echo "ready" ;;
-    "$SM_OVERALL_NOOP")         echo "no-op" ;;
+    "$SM_OVERALL_NOOP")         echo "no changes" ;;
     "$SM_OVERALL_TRUNK_LEAK")   echo "trunk-leak" ;;
     "$SM_OVERALL_CONFLICT")     echo "conflict" ;;
     "$SM_OVERALL_DIRTY")        echo "dirty" ;;
@@ -169,12 +169,12 @@ parse_records() {
             N_CRASHED=$((N_CRASHED+1)) ;;
         esac ;;
       chain)
-        local name cstatus done_n total current phases cw cb cprogress
-        IFS=$'\t' read -r _ name cstatus done_n total current phases cw cb cprogress <<< "$rec"
+        local name cstatus done_n total current phases cw cb cprogress cage
+        IFS=$'\t' read -r _ name cstatus done_n total current phases cw cb cprogress cage <<< "$rec"
         case "$cstatus" in
           complete)
             # A completed chain counts as a success and surfaces in Recent.
-            recent_raw+=("$(printf '0\t%s\t%s\t%s\t%s' "$SM_OVERALL_SUCCESS" "chain:${name}" "$NONE" "$NONE")")
+            recent_raw+=("$(printf '%s\t%s\t%s\t%s\t%s' "$cage" "$SM_OVERALL_SUCCESS" "chain:${name}" "$NONE" "$NONE")")
             N_SUCCESS=$((N_SUCCESS+1)) ;;
           *)
             CHAINS+=("$(printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' "$name" "$cstatus" "$done_n" "$total" "$current" "$phases" "$cw" "$cb" "$cprogress")")
@@ -283,12 +283,13 @@ render_overview() {
     for e in "${RECENT_TOP[@]}"; do
       IFS=$'\t' read -r age overall slug commits notes <<< "$e"
       col="$(overall_color "$overall")"; lbl="$(overall_label "$overall")"
-      local note_disp=""
+      local note_disp="" commit_disp=""
       [[ "$notes" != "$NONE" && -n "$notes" ]] && note_disp="$(truncate "$notes" "$nw")"
-      printf '  %s%-10s%s %-*s %s%s · %sc %s%s%s\n' \
+      [[ "$commits" != "$NONE" ]] && commit_disp="· ${commits}c"
+      printf '  %s%-10s%s %-*s %s%s %s %s%s%s\n' \
         "$col" "$lbl" "$RESET" \
         "$slugw" "$(truncate "$slug" "$slugw")" \
-        "$DIM" "$(age_ago "$age")" "$commits" "$note_disp" "$RESET" "$EL"
+        "$DIM" "$(age_ago "$age")" "$commit_disp" "$note_disp" "$RESET" "$EL"
     done
     printf '%s\n' "$EL"
   fi
@@ -412,6 +413,8 @@ render_archived_rows() {
     IFS=$'\t' read -r age overall slug commits notes <<< "$e"
     if [[ "$overall" == "$NONE" ]]; then
       col="$DIM"; lbl="archived"
+    elif [[ "$overall" == "$SM_ARCHIVE_ABANDONED" ]]; then
+      col="$DIM"; lbl="done"
     else
       col="$(overall_color "$overall")"; lbl="$(overall_label "$overall")"
     fi

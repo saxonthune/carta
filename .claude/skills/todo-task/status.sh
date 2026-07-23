@@ -48,7 +48,7 @@ for rec in "${RECORDS[@]}"; do
         pending)  PENDING+=("${slug}") ;;
         draft)    DRAFTS+=("${slug}") ;;
       esac ;;
-    chain) IFS=$'\t' read -r _ name cstatus done_n total current phases worktree branch progress <<< "$rec"
+    chain) IFS=$'\t' read -r _ name cstatus done_n total current phases worktree branch progress _cage <<< "$rec"
            CHAINS+=("${name}|${cstatus}|${done_n}|${total}|${current}|${phases}|${worktree}|${branch}|${progress}") ;;
     epic)  IFS=$'\t' read -r _ name total done_n running_n failed_n members <<< "$rec"
            EPICS+=("${name}|${total}|${done_n}|${running_n}|${failed_n}|${members}") ;;
@@ -87,7 +87,9 @@ render_bucket() {
   echo "|-------|-------|---------|-------|"
   for row in "${rows[@]}"; do
     IFS='|' read -r slug overall commits notes <<< "$row"
-    echo "| **${slug}** | ${overall} | ${commits} | ${notes} |"
+    local disp="$overall"
+    [[ "$overall" == "$SM_OVERALL_NOOP" ]] && disp="no changes"
+    echo "| **${slug}** | ${disp} | ${commits} | ${notes} |"
   done
   echo ""
 }
@@ -110,7 +112,9 @@ if [[ ${#CRASHED[@]} -gt 0 ]]; then
   echo "|-------|-------|---------|----------|-------|"
   for row in "${CRASHED[@]}"; do
     IFS='|' read -r slug overall commits worktree notes <<< "$row"
-    echo "| **${slug}** | ${overall} | ${commits} | \`${worktree}\` | ${notes} |"
+    disp="$overall"
+    [[ "$overall" == "$SM_OVERALL_NOOP" ]] && disp="no changes"
+    echo "| **${slug}** | ${disp} | ${commits} | \`${worktree}\` | ${notes} |"
   done
   echo ""
 fi
@@ -134,6 +138,12 @@ if [[ ${#CHAINS[@]} -gt 0 ]]; then
   for row in "${CHAINS[@]}"; do
     IFS='|' read -r name cstatus done_n total current phases worktree branch progress <<< "$row"
     _progress="$progress"
+    # Defensive clamp: a chain marked failed/running after every phase already
+    # classified success (e.g. a crash in the chain's own final trunk merge)
+    # must never render as an impossible "phase N/total" with N > total.
+    if (( done_n >= total )); then
+      _progress="${total}/${total}"
+    fi
     # Upcoming phases only (queued, not done or current) — running/waiting states only
     IFS=',' read -ra _up_arr <<< "$phases"
     _upcoming_parts=()

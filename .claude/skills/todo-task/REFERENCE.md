@@ -81,6 +81,13 @@ run-record. `archive.sh` then sweeps it as complete on the next run.
 The script refuses to act if the chain's phase results are not yet present on trunk HEAD —
 it will print the merge command and exit 1 without touching anything.
 
+### Recovering a stranded chain (`failed` with all phases done)
+
+If a chain shows `failed` but every phase's result already classifies success (a crash
+after the last phase merged, before the chain's own trunk merge completed), just re-run
+the same `launch-chain.sh` command with the same chain name and phases. Completed phases
+are skipped and only the final chain→trunk merge is re-attempted — no manual git needed.
+
 ## Rules
 
 - `create` only writes `inbox/{slug}.md` (gitignored draft). Never commit it.

@@ -259,6 +259,8 @@ Committing anywhere else loses your work and corrupts the trunk branch. \
 If the plan contains a '## Surface after this phase' section, you MUST make the implementation match that declared Surface exactly. \
 The Surface is a contract that later phases of the chain depend on. If you cannot implement something the Surface declares, halt and explain why. \
 When done, run the commands in the plan's ## Verification section and fix any issues. \
+The verification commands must be non-destructive — if a plan's verification appears to archive, git rm, or remove worktrees, do NOT run that command; report it instead. \
+Run build, test, and verification commands in the FOREGROUND and let them block to completion, even if they are slow. Do NOT run them in the background and poll with sleep/tail — you have no polling tool in this sandbox and that pattern is blocked, which will strand your work uncommitted. If a command is slow, wait for it. \
 Then verify you made at least one commit (run 'git log --oneline -3'). \
 Output your implementation summary, then end with a '## Notes' section containing: \
 - Any deviations from the plan (and why) \
@@ -468,6 +470,42 @@ Fix the issues and commit your fixes. The runner will re-run verification automa
   done
 }
 
+# git_retry_on_lock <command string>
+# Runs a git command (via eval, in the current directory) with a bounded retry
+# when it fails on index.lock contention from a concurrent foreground git
+# process. A non-lock failure returns immediately (no retry) so a genuine
+# content conflict is not masked. Sets GIT_RETRY_LOCK_BLOCKED=true and
+# GIT_RETRY_ATTEMPTS on exhaustion; caller decides cleanup (e.g. merge --abort).
+git_retry_on_lock() {
+  local cmd="$1"
+  local max_attempts=5
+  local merge_attempts=0
+  local err
+  local rc
+  GIT_RETRY_LOCK_BLOCKED=false
+  GIT_RETRY_ATTEMPTS=0
+  while :; do
+    merge_attempts=$((merge_attempts + 1))
+    GIT_RETRY_ATTEMPTS=$merge_attempts
+    err=$(eval "$cmd" 2>&1)
+    rc=$?
+    if [[ $rc -eq 0 ]]; then
+      return 0
+    fi
+    if echo "$err" | grep -qiE 'index\.lock|another git process|Unable to create'; then
+      if [[ $merge_attempts -ge $max_attempts ]]; then
+        GIT_RETRY_LOCK_BLOCKED=true
+        return 1
+      fi
+      echo "git index.lock collision (attempt ${merge_attempts}/${max_attempts}) — retrying..."
+      sleep 2
+      continue
+    fi
+    echo "$err"
+    return 1
+  done
+}
+
 # phase_merge
 # Merges worktree branch into trunk, or skips. Sets MERGE_STATUS, COMMITS, DIRTY_FILES.
 phase_merge() {
@@ -480,7 +518,9 @@ phase_merge() {
       echo "── Merging into trunk ──"
       cd "${MERGE_DIR}"
 
-      if git merge --squash "${BRANCH}" && git commit -m "feat: ${PLAN_SLUG} (agent)"; then
+      MERGE_LOCK_DETAIL=""
+      if git_retry_on_lock "git merge --squash \"${BRANCH}\"" && \
+         git_retry_on_lock "git commit -m \"feat: ${PLAN_SLUG} (agent)\""; then
         # Scan for conflict markers in the merge commit
         DIRTY_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | \
           xargs -r grep -l -E '^(<{7} |={7}$|>{7} )' 2>/dev/null || true)
@@ -500,6 +540,11 @@ phase_merge() {
           git branch -D "${BRANCH}" 2>/dev/null || true
           echo "Removed worktree and branch"
         fi
+      elif [[ "$GIT_RETRY_LOCK_BLOCKED" == "true" ]]; then
+        git merge --abort 2>/dev/null || true
+        MERGE_STATUS="$SM_MERGE_CONFLICT"
+        MERGE_LOCK_DETAIL="Merge blocked by git index.lock after ${GIT_RETRY_ATTEMPTS} attempts — a concurrent git process held the lock. Branch ${BRANCH} left intact; re-run merge when the tree is idle."
+        echo "$MERGE_LOCK_DETAIL"
       else
         git merge --abort 2>/dev/null || true
         MERGE_STATUS="$SM_MERGE_CONFLICT"
@@ -575,11 +620,11 @@ phase_finalize() {
   if [[ "${VERIFIED:-false}" == "true" && "${MERGE_STATUS:-}" == "$SM_MERGE_CLEAN" ]]; then
     echo "Done! Plan '${PLAN_SLUG}' implemented and merged successfully."
   elif [[ "${VERIFIED:-false}" == "true" ]]; then
-    echo "Plan '${PLAN_SLUG}' verified; merge outcome '${MERGE_STATUS:-}'. See: bash .claude/skills/todo-task/status.sh"
+    echo "Plan '${PLAN_SLUG}' verified; merge outcome '${MERGE_STATUS:-}'. See: bash .claude/skills/todo-task/status.sh --archive"
     [[ "${MERGE_STATUS:-}" == "$SM_MERGE_SKIPPED_FLAG" ]] && exit 0
     exit 1
   else
-    echo "Plan '${PLAN_SLUG}' needs manual attention. See: bash .claude/skills/todo-task/status.sh"
+    echo "Plan '${PLAN_SLUG}' needs manual attention. See: bash .claude/skills/todo-task/status.sh --archive"
     exit 1
   fi
 }
