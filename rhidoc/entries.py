@@ -18,12 +18,17 @@ def entry_prefix(p: Path) -> int:
 
 
 def list_numbered_entries(directory: Path) -> list[Path]:
-    """Return directory entries that have a 2-digit numeric prefix, sorted by prefix."""
+    """Return directory entries with a 2-digit numeric prefix, sorted by (prefix, name).
+
+    The name is a deterministic tiebreaker for same-prefix entries (a root .md and its
+    sidecars): sorting on prefix alone leaves ties in filesystem iteration order, which
+    varies by platform and leaks into move-ordering output.
+    """
     entries = [
         p for p in directory.iterdir()
         if EntryName.parse(p.name) is not None
     ]
-    return sorted(entries, key=entry_prefix)
+    return sorted(entries, key=lambda p: (entry_prefix(p), p.name))
 
 
 def _fuzzy_match(arg: str, rhidoc_root: Path) -> Path | None:
