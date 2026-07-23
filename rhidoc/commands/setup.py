@@ -384,6 +384,27 @@ def cmd_portable(args: argparse.Namespace, rhidoc_root: Path) -> None:
     print(f"\nThese are your scripts — edit freely.")
 
 
+def cmd_version(args: argparse.Namespace) -> None:
+    """Print the CLI version and the templates version this rhidoc ships.
+
+    Works with no workspace. Inside one, also report the version recorded in the marker
+    and flag drift from what this rhidoc ships.
+    """
+    print(f"rhidoc {__version__}")
+    print(f"templates {TEMPLATES_VERSION}")
+
+    try:
+        rhidoc_root = args.workspace.resolve() if args.workspace else find_workspace()
+    except FileNotFoundError:
+        return
+    marker_path = rhidoc_root.parent / MARKER
+    if not marker_path.exists():
+        return
+    recorded = (json.loads(marker_path.read_text(encoding="utf-8")).get("installed") or {}).get("templatesVersion")
+    if recorded is not None and str(recorded) != str(TEMPLATES_VERSION):
+        print(f"workspace templates {recorded} (run `rhidoc update` to refresh)")
+
+
 # ---------------------------------------------------------------------------
 # handbook
 # ---------------------------------------------------------------------------

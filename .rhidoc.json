@@ -8,7 +8,7 @@
     ".cursor/**/*.md"
   ],
   "installed": {
-    "templatesVersion": 1,
+    "templatesVersion": "2026.07.23",
     "files": [
       ".claude/skills/docs-development/SKILL.md",
       ".claude/skills/rhidoc-cli/SKILL.md",

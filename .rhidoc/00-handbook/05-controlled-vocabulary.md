@@ -1,6 +1,6 @@
 ---
 title: Controlled Vocabulary
-summary: The workspace glossary as a controlled vocabulary — entry kinds and sentence patterns from fact-based modeling (ORM), a worked example, and the naming rule
+summary: The workspace glossary as a controlled vocabulary — which terms are admitted, entry kinds and sentence patterns from fact-based modeling (ORM), a worked example, and the naming rule
 tags: [glossary, vocabulary, facts, subtypes, naming, docs]
 deps: []
 ---
@@ -10,6 +10,14 @@ deps: []
 The workspace glossary is a controlled vocabulary: one term per concept, one concept per term. Docs use the glossary's terms exactly and introduce no domain terms of their own.
 
 Entries follow the verbalization patterns of fact-based modeling (Object-Role Modeling — Halpin; standardized by OMG as SBVR; the same one-concept-one-term discipline as ISO 704). A verbalized fact is a subject–verb–object sentence a domain expert can affirm or reject. One entry kind, Unnamed, is our extension and is marked as such.
+
+## Admission
+
+Which terms belong comes before how to shape them. A glossary only grows, and each term looks locally defensible, so without an admission rule the vocabulary dilutes until the terms that carry product meaning are buried among ones that do not. Three rules decide entry:
+
+- **The user admits a term; capitalizing a word does not.** A term enters the glossary only when the user asks for it. A word capitalized in a requirement is not thereby a glossary term — a convention worded "capitalized terms are the glossary terms" runs backwards if read as "anything capitalized must be defined."
+- **Universal concepts stay out.** A concept that means the same thing in every tool — a toolbar, a camera, a button — says nothing about this product. Describe it in plain words; do not give it an entry.
+- **A state of another concept stays out.** A mode or phase of an existing Term is not a Term of its own. The test is whether the word carries meaning standing alone, out of context.
 
 ## Entry Kinds
 

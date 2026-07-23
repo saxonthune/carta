@@ -23,9 +23,9 @@ follow them — do not re-derive or restate them:
 - **doc00.03** — conventions: cross-reference syntax, frontmatter, file naming, writing style.
 - **doc00.04** — plain language: the register standard for all workspace prose —
   contrastive rules for jargon, word senses, parts of speech, and prepositions.
-- **doc00.05** — controlled vocabulary: the glossary's entry kinds and sentence patterns
-  (terms, facts, subtypes, derivations, unnamed concepts), and the naming rule — the user
-  decides names; the agent proposes.
+- **doc00.05** — controlled vocabulary: which terms are admitted, the glossary's entry kinds
+  and sentence patterns (terms, facts, subtypes, derivations, unnamed concepts), and the
+  naming rule — the user decides names; the agent proposes.
 - **doc00.06** — drift: the two-copies rule, the reason-to-write test, and the banned
   patterns the lint enforces — including no open-questions sections in doc bodies
   (surface open questions to the user instead).
@@ -35,11 +35,9 @@ This skill governs only *how to run the session*. When in doubt about content, d
 ## How to Run the Session
 
 - **Glossary first, then fan-out.** The workspace's first substantive doc is the glossary,
-  and the user owns it. Names are the highest cost-of-change artifact — every doc, type,
-  and identifier downstream inherits them, and a weak or overloaded name becomes a
-  multi-file rename sweep. Before elaborating structural docs (architecture, module specs,
-  contracts), confirm the domain vocabulary with the user. When work reaches a concept the
-  glossary does not name, add an Unnamed entry (doc00.05) and surface the decision — never
+  and the user owns it. Confirm the domain vocabulary with the user before elaborating
+  structural docs (architecture, module specs, contracts). When work reaches a concept the
+  glossary does not name, add an Unnamed entry and surface the decision (doc00.05) — never
   fan out on a name the user has not confirmed.
 - **Docs sit above the code.** A doc holds intent — why a layer exists, its invariants —
   and points to code or types for shape (the reason-to-write test, doc00.06). Never restate

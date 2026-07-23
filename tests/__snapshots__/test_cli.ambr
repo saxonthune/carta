@@ -198,6 +198,7 @@
   | `init` | Initialize a new workspace |
   | `update` | Refresh handbook docs and skills from the installed rhidoc version |
   | `portable` | Dump editable scripts into workspace |
+  | `version` | Print the rhidoc CLI and templates versions |
   | `handbook` | Print a handbook doc (conventions, plain language, drift, ...) to stdout |
   | `ai-skill` | Print compact AI agent reference (pass a command name for its full block) |
   | `cat` | Print document contents by ref |
@@ -331,6 +332,7 @@
   | `init` | Initialize a new workspace |
   | `update` | Refresh handbook docs and skills from the installed rhidoc version |
   | `portable` | Dump editable scripts into workspace |
+  | `version` | Print the rhidoc CLI and templates versions |
   | `handbook` | Print a handbook doc (conventions, plain language, drift, ...) to stdout |
   | `ai-skill` | Print compact AI agent reference (pass a command name for its full block) |
   | `cat` | Print document contents by ref |
@@ -464,6 +466,7 @@
   | `init` | Initialize a new workspace |
   | `update` | Refresh handbook docs and skills from the installed rhidoc version |
   | `portable` | Dump editable scripts into workspace |
+  | `version` | Print the rhidoc CLI and templates versions |
   | `handbook` | Print a handbook doc (conventions, plain language, drift, ...) to stdout |
   | `ai-skill` | Print compact AI agent reference (pass a command name for its full block) |
   | `cat` | Print document contents by ref |

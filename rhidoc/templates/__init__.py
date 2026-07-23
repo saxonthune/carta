@@ -15,9 +15,13 @@ _DIR = Path(__file__).resolve().parent
 
 HANDBOOK_DIR = "00-handbook"
 
-# Bumped when any shipped template's text changes. Deliberately independent of the CLI
-# version: prose fixes ship without implying the code moved, and vice versa.
-TEMPLATES_VERSION = 1
+# CalVer for the set of files rhidoc installs into a workspace — handbook docs, AGENTS.md,
+# wiring, and skills. Format: YYYY.MM.DD, plus a lowercase letter (a, b, ...) for a
+# same-day re-release. Deliberately independent of the CLI version (pyproject): prose ships
+# without implying the code moved, and vice versa. Bumped deliberately at release, not on
+# every template edit — `update` reconciles hydrated files by content diff, so this string
+# is a human-readable release label, not a correctness input.
+TEMPLATES_VERSION = "2026.07.23"
 
 # doc00.07 is reserved for the user's own doctrine and is never managed by rhidoc.
 # Handbook docs rhidoc ships occupy 00-06 and continue at 08 — never 07.

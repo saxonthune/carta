@@ -3,14 +3,13 @@ import argparse
 import sys
 from pathlib import Path
 
-from ..__version__ import __version__
 from ..errors import RhidocError
 from ..workspace import find_workspace
 from ..ai_skill import cmd_ai_skill
 from .structure import cmd_make, cmd_delete, cmd_move, cmd_rename
 from .transform import cmd_punch, cmd_hoist, cmd_copy
 from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach, cmd_ls, cmd_bundle, cmd_orphans
-from .setup import cmd_init, cmd_portable, cmd_update, cmd_handbook, handbook_listing
+from .setup import cmd_init, cmd_portable, cmd_update, cmd_handbook, cmd_version, handbook_listing
 from .mdapi import cmd_mdapi
 
 
@@ -25,7 +24,8 @@ def build_parser() -> argparse.ArgumentParser:
         prog="rhidoc",
         description="Workspace tools for managing .rhidoc/ documentation.",
     )
-    parser.add_argument("--version", action="version", version=f"rhidoc {__version__}")
+    parser.add_argument("--version", action="store_true",
+                        help="Print the rhidoc CLI and templates versions")
     parser.add_argument("--workspace", "-w", type=Path, default=None,
                         help="Path to workspace directory. Default: auto-detect.")
     parser.add_argument("--help-ai", action="store_true",
@@ -182,6 +182,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     # portable
     p_portable = subparsers.add_parser("portable", help="Dump editable scripts into workspace")
+
+    # version
+    subparsers.add_parser("version", help="Print the rhidoc CLI and templates versions")
 
     # handbook
     from ..templates import listed as _listed_handbook
@@ -394,6 +397,10 @@ def main(argv: list[str] | None = None) -> int:
         print("Run `rhidoc ai-skill` for full semantic documentation.")
         return 0
 
+    # --version is sugar for the `version` subcommand.
+    if args.version:
+        args.command = "version"
+
     if not args.command:
         parser.print_help()
         return 1
@@ -407,6 +414,11 @@ def main(argv: list[str] | None = None) -> int:
         # init doesn't require a pre-existing workspace
         if args.command == "init":
             cmd_init(args)
+            return 0
+
+        # version reports the installed rhidoc — no workspace required
+        if args.command == "version":
+            cmd_version(args)
             return 0
 
         # Resolve workspace

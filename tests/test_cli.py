@@ -41,6 +41,8 @@ def ref_to_path(ref: str, root: "Path") -> "Path":
 def path_to_ref(path: "Path", root: "Path") -> str:
     return str(DocRef.from_path(path, root))
 from rhidoc.workspace import find_workspace, MARKER
+from rhidoc.templates import TEMPLATES_VERSION
+from rhidoc.__version__ import __version__
 
 from helpers import normalize_output
 
@@ -309,9 +311,17 @@ def test_init_records_installed_files(run_cli, tmp_path):
     assert ".rhidoc/00-handbook/04-plain-language.md" in files
     assert ".rhidoc/AGENTS.md" in files
     assert ".claude/skills/rhidoc-cli/SKILL.md" in files
-    assert config["installed"]["templatesVersion"] >= 1
+    assert config["installed"]["templatesVersion"] == TEMPLATES_VERSION
     # The user's slot is scaffolded but never claimed.
     assert not any("07-user-handbook" in f for f in files)
+
+
+def test_version_reports_cli_and_templates(run_cli, tmp_path):
+    """`version` prints the CLI version and the shipped templates version."""
+    code, out, _ = run_cli("version", cwd=tmp_path)
+    assert code == 0
+    assert f"rhidoc {__version__}" in out
+    assert f"templates {TEMPLATES_VERSION}" in out
 
 
 def test_init_creates_user_slot(run_cli, tmp_path):
